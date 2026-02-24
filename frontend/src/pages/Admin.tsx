@@ -787,8 +787,9 @@ function SmtpTab({ config, password, loading, message, onConfigChange, onPasswor
         </button>
 
         <a
-          href="/EMAIL_SETUP.md"
+          href="https://github.com/zhikanyeye/domain-renewal-reminder/blob/main/EMAIL_SETUP.md"
           target="_blank"
+          rel="noopener noreferrer"
           className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
