@@ -212,7 +212,8 @@ export class EmailService {
         hostname: this.smtpConfig.host,
         port: this.smtpConfig.port,
       }, {
-        secureTransport: this.smtpConfig.port === 465 ? 'on' : 'starttls'
+        secureTransport: this.smtpConfig.port === 465 ? 'on' : 'starttls',
+        allowHalfOpen: false,
       });
 
       const writer = socket.writable.getWriter();

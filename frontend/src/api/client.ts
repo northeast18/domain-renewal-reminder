@@ -114,6 +114,13 @@ class ApiClient {
     return this.request('/auth/me');
   }
 
+  async resendVerification(email: string) {
+    return this.request('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
   // Domain endpoints
   async getDomains(filters?: {
     renewalUrl?: string;

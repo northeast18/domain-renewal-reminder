@@ -279,4 +279,66 @@ export class AuthService {
       };
     }
   }
+
+  /**
+   * Resend verification email
+   */
+  async resendVerification(email: string): Promise<ApiResponse<{ verificationToken: string }>> {
+    try {
+      // Check if user exists
+      const user = await this.db
+        .prepare('SELECT id, is_verified FROM users WHERE email = ?')
+        .bind(email.toLowerCase())
+        .first<{ id: string; is_verified: number }>();
+
+      if (!user) {
+        return {
+          success: false,
+          error: {
+            code: 'USER_NOT_FOUND',
+            message: 'No account found with this email',
+          },
+        };
+      }
+
+      // Check if already verified
+      if (user.is_verified) {
+        return {
+          success: false,
+          error: {
+            code: 'ALREADY_VERIFIED',
+            message: 'This email is already verified',
+          },
+        };
+      }
+
+      // Generate new verification token
+      const verificationToken = crypto.randomUUID();
+      const tokenData: VerificationToken = {
+        userId: user.id,
+        email: email.toLowerCase(),
+      };
+
+      await this.kv.put(
+        `verify:${verificationToken}`,
+        JSON.stringify(tokenData),
+        { expirationTtl: VERIFICATION_TTL }
+      );
+
+      return {
+        success: true,
+        data: { verificationToken },
+        message: 'Verification email will be sent shortly',
+      };
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      return {
+        success: false,
+        error: {
+          code: 'RESEND_FAILED',
+          message: 'Failed to resend verification email',
+        },
+      };
+    }
+  }
 }

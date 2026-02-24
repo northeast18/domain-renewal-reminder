@@ -11,12 +11,17 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showResendButton, setShowResendButton] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setShowResendButton(false);
+    setResendMessage('');
     setLoading(true);
 
     try {
@@ -26,11 +31,37 @@ export function Login() {
         navigate('/dashboard');
       } else {
         setError(result.message || '登录失败');
+        
+        // Check if error is due to unverified email
+        if (result.message?.includes('verify') || result.message?.includes('验证')) {
+          setShowResendButton(true);
+        }
       }
     } catch (err) {
       setError('登录时发生错误');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setResendMessage('');
+    
+    try {
+      const { apiClient } = await import('../api/client');
+      const result = await apiClient.resendVerification(email);
+      
+      if (result.success) {
+        setResendMessage('验证邮件已发送,请检查您的邮箱');
+        setShowResendButton(false);
+      } else {
+        setResendMessage(result.error?.message || '发送失败,请稍后重试');
+      }
+    } catch (err) {
+      setResendMessage('发送失败,请稍后重试');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -60,7 +91,41 @@ export function Login() {
                 <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-red-700 text-sm font-medium">{error}</span>
+                <div className="flex-1">
+                  <span className="text-red-700 text-sm font-medium">{error}</span>
+                  {showResendButton && (
+                    <button
+                      onClick={handleResendVerification}
+                      disabled={resendLoading}
+                      className="mt-2 text-sm text-indigo-600 hover:text-indigo-700 font-semibold underline disabled:opacity-50"
+                    >
+                      {resendLoading ? '发送中...' : '重新发送验证邮件'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {resendMessage && (
+            <div className={`mb-6 p-3 sm:p-4 border-l-4 rounded-xl animate-slideDown backdrop-blur-sm ${
+              resendMessage.includes('成功') || resendMessage.includes('已发送')
+                ? 'bg-green-50/80 border-green-500'
+                : 'bg-yellow-50/80 border-yellow-500'
+            }`}>
+              <div className="flex items-start gap-2 sm:gap-3">
+                <svg className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                  resendMessage.includes('成功') || resendMessage.includes('已发送')
+                    ? 'text-green-500'
+                    : 'text-yellow-500'
+                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className={`text-sm font-medium ${
+                  resendMessage.includes('成功') || resendMessage.includes('已发送')
+                    ? 'text-green-700'
+                    : 'text-yellow-700'
+                }`}>{resendMessage}</span>
               </div>
             </div>
           )}

@@ -261,4 +261,111 @@ auth.get('/me', requireAuth, async (c) => {
   }
 });
 
+/**
+ * POST /auth/resend-verification
+ * Resend verification email
+ */
+auth.post('/resend-verification', async (c) => {
+  try {
+    const { email } = await c.req.json();
+
+    if (!email) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'MISSING_EMAIL',
+            message: 'Email is required',
+          },
+        },
+        400
+      );
+    }
+
+    const authService = new AuthService(c.env.DB as D1Database, c.env.KV as KVNamespace);
+    const result = await authService.resendVerification(email);
+
+    if (!result.success || !result.data) {
+      return c.json(result, 400);
+    }
+
+    // Send verification email
+    try {
+      const adminService = new AdminService(
+        c.env.DB as D1Database,
+        c.env.KV as KVNamespace,
+        c.env.ENCRYPTION_KEY as string
+      );
+      
+      const smtpConfigResult = await adminService.getSmtpConfig();
+      
+      if (smtpConfigResult.success && smtpConfigResult.data) {
+        const emailService = new EmailService(smtpConfigResult.data);
+        
+        const token = result.data.verificationToken;
+        const baseUrl = new URL(c.req.url).origin;
+        
+        const { subject, body } = emailService.composeVerificationEmail(email, token, baseUrl);
+        
+        console.log('Resending verification email:', {
+          to: email,
+          subject,
+          smtpProvider: smtpConfigResult.data.provider,
+        });
+        
+        const emailResult = await emailService.sendEmail(email, subject, body);
+        
+        if (!emailResult.success) {
+          console.error('Failed to resend verification email:', emailResult.error);
+          return c.json({
+            success: false,
+            error: {
+              code: 'EMAIL_SEND_FAILED',
+              message: 'Failed to send verification email. Please try again later.',
+              details: emailResult.error,
+            },
+          }, 500);
+        }
+        
+        console.log('Verification email resent successfully');
+      } else {
+        console.warn('SMTP not configured');
+        return c.json({
+          success: false,
+          error: {
+            code: 'SMTP_NOT_CONFIGURED',
+            message: 'Email service is not configured. Please contact support.',
+          },
+        }, 500);
+      }
+    } catch (emailError) {
+      console.error('Error resending verification email:', emailError);
+      return c.json({
+        success: false,
+        error: {
+          code: 'EMAIL_ERROR',
+          message: 'An error occurred while sending email',
+        },
+      }, 500);
+    }
+
+    return c.json({
+      success: true,
+      message: 'Verification email sent successfully. Please check your inbox.',
+    });
+  } catch (error) {
+    console.error('Resend verification route error:', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'An error occurred',
+        },
+      },
+      500
+    );
+  }
+});
+
 export default auth;
