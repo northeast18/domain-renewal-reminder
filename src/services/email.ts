@@ -258,16 +258,17 @@ export class EmailService {
           // Connection will be upgraded to TLS automatically
         }
 
-        // 4. AUTH LOGIN
-        if (this.smtpConfig.username && this.smtpConfig.password) {
+        // 4. AUTH LOGIN (if password is provided)
+        if (this.smtpConfig.password) {
           await sendCommand('AUTH LOGIN');
           response = await readResponse();
           if (!response.startsWith('334')) {
             throw new Error(`AUTH LOGIN failed: ${response}`);
           }
 
-          // Send username (Base64 encoded)
-          await sendCommand(btoa(this.smtpConfig.username));
+          // Send username (Base64 encoded) - use email if username is empty
+          const username = this.smtpConfig.username || this.smtpConfig.fromEmail;
+          await sendCommand(btoa(username));
           response = await readResponse();
           if (!response.startsWith('334')) {
             throw new Error(`Username authentication failed: ${response}`);
