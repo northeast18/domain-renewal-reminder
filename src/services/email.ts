@@ -495,7 +495,9 @@ export class EmailService {
    * Compose verification email
    */
   composeVerificationEmail(_email: string, token: string, baseUrl: string): { subject: string; body: string } {
-    const verificationUrl = `${baseUrl}/verify?token=${token}`;
+    // Remove trailing slash from baseUrl to avoid double slashes
+    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+    const verificationUrl = `${cleanBaseUrl}/verify?token=${token}`;
 
     const subject = '验证您的邮箱地址 - 域名续期提醒服务';
 
