@@ -439,7 +439,7 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
     <div>
       {/* Desktop Table View - Hidden on mobile */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-full divide-y divide-gray-200 table-fixed">
           <colgroup>
             <col style={{ width: '30%' }} />
             <col style={{ width: '25%' }} />
@@ -459,55 +459,51 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
           <tbody className="bg-white/50 backdrop-blur-sm divide-y divide-gray-100">
             {users.map((user) => (
               <tr key={user.id} className="hover:bg-indigo-50/30 transition-all duration-200">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-middle">{user.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap align-middle">
-                  <div className="flex gap-2">
-                    {user.is_verified ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-sm">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        已验证
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-sm">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        未验证
-                      </span>
-                    )}
-                    {user.is_blacklisted ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                        已拉黑
-                      </span>
-                    ) : null}
-                  </div>
+                <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.email}</td>
+                <td className="px-6 py-4">
+                  {user.is_verified ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-sm mr-2">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      已验证
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-sm mr-2">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      未验证
+                    </span>
+                  )}
+                  {user.is_blacklisted ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                      已拉黑
+                    </span>
+                  ) : null}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium align-middle">{user.domain_count || 0}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 align-middle">
+                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{user.domain_count || 0}</td>
+                <td className="px-6 py-4 text-sm text-gray-600">
                   {new Date(user.created_at * 1000).toLocaleDateString('zh-CN')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium align-middle">
-                  <div className="flex items-center gap-2">
-                    {!user.is_blacklisted && (
-                      <button
-                        onClick={() => onBlacklist(user.id)}
-                        className="px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
-                      >
-                        拉黑
-                      </button>
-                    )}
+                <td className="px-6 py-4 text-sm font-medium">
+                  {!user.is_blacklisted && (
                     <button
-                      onClick={() => onDelete(user.id, user.email)}
-                      className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      onClick={() => onBlacklist(user.id)}
+                      className="px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded-lg transition-all mr-2"
                     >
-                      删除
+                      拉黑
                     </button>
-                  </div>
+                  )}
+                  <button
+                    onClick={() => onDelete(user.id, user.email)}
+                    className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                  >
+                    删除
+                  </button>
                 </td>
               </tr>
             ))}
