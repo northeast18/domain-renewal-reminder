@@ -12,7 +12,7 @@ interface User {
   is_verified: number; // SQLite uses INTEGER for boolean (0 or 1)
   is_blacklisted: number; // SQLite uses INTEGER for boolean (0 or 1)
   created_at: number;
-  domainCount: number;
+  domain_count: number;
 }
 
 interface AdminLog {
@@ -480,7 +480,7 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
                     ) : null}
                   </div>
                 </td>
-                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{user.domainCount || 0}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{user.domain_count || 0}</td>
                 <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-600">
                   {new Date(user.created_at * 1000).toLocaleDateString('zh-CN')}
                 </td>

@@ -18,7 +18,7 @@ export class AdminService {
    * List all users with pagination
    */
   async listUsers(page: number = 1, pageSize: number = 20): Promise<ApiResponse<{
-    users: User[];
+    users: Array<User & { domain_count: number }>;
     total: number;
     page: number;
     pageSize: number;
@@ -33,12 +33,22 @@ export class AdminService {
 
       const total = countResult?.count || 0;
 
-      // Get users
+      // Get users with domain count
       const result = await this.db
         .prepare(
-          `SELECT id, email, is_verified, is_blacklisted, blacklist_reason, created_at, updated_at
-           FROM users
-           ORDER BY created_at DESC
+          `SELECT 
+            u.id, 
+            u.email, 
+            u.is_verified, 
+            u.is_blacklisted, 
+            u.blacklist_reason, 
+            u.created_at, 
+            u.updated_at,
+            COUNT(d.id) as domain_count
+           FROM users u
+           LEFT JOIN domains d ON u.id = d.user_id
+           GROUP BY u.id, u.email, u.is_verified, u.is_blacklisted, u.blacklist_reason, u.created_at, u.updated_at
+           ORDER BY u.created_at DESC
            LIMIT ? OFFSET ?`
         )
         .bind(pageSize, offset)
@@ -47,7 +57,7 @@ export class AdminService {
       return {
         success: true,
         data: {
-          users: result.results as User[],
+          users: result.results as Array<User & { domain_count: number }>,
           total,
           page,
           pageSize,
