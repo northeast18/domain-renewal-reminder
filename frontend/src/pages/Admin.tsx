@@ -449,18 +449,18 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
           </colgroup>
           <thead className="bg-gray-50/80 backdrop-blur-sm">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">邮箱</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">状态</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">域名数</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">注册时间</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">操作</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">邮箱</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">状态</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">域名数</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">注册时间</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">操作</th>
             </tr>
           </thead>
           <tbody className="bg-white/50 backdrop-blur-sm divide-y divide-gray-100">
             {users.map((user) => (
               <tr key={user.id} className="hover:bg-indigo-50/30 transition-all duration-200">
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.email}</td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 text-sm font-medium text-gray-900 align-middle">{user.email}</td>
+                <td className="px-6 py-4 align-middle">
                   {user.is_verified ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-sm mr-2">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -485,11 +485,11 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
                     </span>
                   ) : null}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{user.domain_count || 0}</td>
-                <td className="px-6 py-4 text-sm text-gray-600">
+                <td className="px-6 py-4 text-sm text-gray-900 font-medium align-middle">{user.domain_count || 0}</td>
+                <td className="px-6 py-4 text-sm text-gray-600 align-middle">
                   {new Date(user.created_at * 1000).toLocaleDateString('zh-CN')}
                 </td>
-                <td className="px-6 py-4 text-sm font-medium">
+                <td className="px-6 py-4 text-sm font-medium align-middle">
                   {!user.is_blacklisted && (
                     <button
                       onClick={() => onBlacklist(user.id)}

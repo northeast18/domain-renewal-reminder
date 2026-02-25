@@ -540,19 +540,19 @@ function DomainListView({ domains, onEdit, onDelete, getDaysUntilExpiry, formatD
             </colgroup>
             <thead className="bg-gray-50/80 backdrop-blur-sm">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">
                   域名信息
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">
                   到期日期
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">
                   剩余天数
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">
                   提醒进度
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider align-middle">
                   操作
                 </th>
               </tr>
@@ -565,14 +565,14 @@ function DomainListView({ domains, onEdit, onDelete, getDaysUntilExpiry, formatD
 
                 return (
                   <tr key={domain.id} className="hover:bg-indigo-50/30 transition-all duration-200">
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-middle">
                       <div className="text-sm font-semibold text-gray-900 truncate">{domain.domain_address}</div>
                       <div className="text-xs text-gray-500 mt-0.5 truncate">{domain.renewal_url}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-middle">
                       <div className="text-sm font-medium text-gray-900">{formatDate(domain.expiry_date)}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-middle">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-full shadow-sm ${
                         isUrgent ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' :
                         isWarning ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white' :
@@ -584,7 +584,7 @@ function DomainListView({ domains, onEdit, onDelete, getDaysUntilExpiry, formatD
                         {daysLeft} 天
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-middle">
                       <div className="text-sm font-medium text-gray-700">
                         {domain.reminders_sent}/{domain.reminder_count}
                       </div>
@@ -595,7 +595,7 @@ function DomainListView({ domains, onEdit, onDelete, getDaysUntilExpiry, formatD
                         ></div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-middle">
                       <button 
                         onClick={() => onEdit(domain)}
                         className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-200 mr-1"
