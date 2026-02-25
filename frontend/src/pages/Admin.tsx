@@ -451,8 +451,8 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
           <tbody className="bg-white/50 backdrop-blur-sm divide-y divide-gray-100">
             {users.map((user) => (
               <tr key={user.id} className="hover:bg-indigo-50/30 transition-all duration-200">
-                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.email}</td>
-                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-middle">{user.email}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap align-middle">
                   <div className="flex gap-2">
                     {user.is_verified ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-sm">
@@ -479,11 +479,11 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
                     ) : null}
                   </div>
                 </td>
-                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{user.domain_count || 0}</td>
-                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-600">
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900 font-medium align-middle">{user.domain_count || 0}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-600 align-middle">
                   {new Date(user.created_at * 1000).toLocaleDateString('zh-CN')}
                 </td>
-                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium">
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium align-middle">
                   <div className="flex items-center gap-2">
                     {!user.is_blacklisted && (
                       <button

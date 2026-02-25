@@ -556,7 +556,7 @@ function DomainListView({ domains, onEdit, onDelete, getDaysUntilExpiry, formatD
 
               return (
                 <tr key={domain.id} className="hover:bg-indigo-50/30 transition-all duration-200">
-                  <td className="px-4 sm:px-6 py-3 sm:py-4">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 align-middle">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                         <svg className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -569,10 +569,10 @@ function DomainListView({ domains, onEdit, onDelete, getDaysUntilExpiry, formatD
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 sm:px-6 py-3 sm:py-4">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 align-middle">
                     <div className="text-xs sm:text-sm font-medium text-gray-900">{formatDate(domain.expiry_date)}</div>
                   </td>
-                  <td className="px-4 sm:px-6 py-3 sm:py-4">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 align-middle">
                     <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold rounded-full shadow-sm ${
                       isUrgent ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' :
                       isWarning ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white' :
@@ -584,7 +584,7 @@ function DomainListView({ domains, onEdit, onDelete, getDaysUntilExpiry, formatD
                       {daysLeft} 天
                     </span>
                   </td>
-                  <td className="px-4 sm:px-6 py-3 sm:py-4">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 align-middle">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[80px] sm:max-w-[100px]">
                         <div 
@@ -597,7 +597,7 @@ function DomainListView({ domains, onEdit, onDelete, getDaysUntilExpiry, formatD
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 sm:px-6 py-3 sm:py-4">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 align-middle">
                     <div className="flex items-center gap-1 sm:gap-2">
                       <button 
                         onClick={() => onEdit(domain)}
