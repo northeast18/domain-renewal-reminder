@@ -33,6 +33,9 @@ export function Dashboard() {
   const [filterUsagePeriod, setFilterUsagePeriod] = useState<number | ''>('');
   const [filterReminderCount, setFilterReminderCount] = useState<number | ''>('');
   const [viewMode, setViewMode] = useState<'list' | 'grouped'>('list');
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     loadDomains();
@@ -76,11 +79,20 @@ export function Dashboard() {
     setFilterRenewalUrl('');
     setFilterUsagePeriod('');
     setFilterReminderCount('');
+    setSearchQuery('');
   };
+
+  // Filter domains based on search query
+  const filteredDomains = domains.filter(domain => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return domain.domainAddress.toLowerCase().includes(query) ||
+           domain.renewalUrl.toLowerCase().includes(query);
+  });
 
   const groupDomainsByRenewalUrl = () => {
     const grouped: Record<string, Domain[]> = {};
-    domains.forEach(domain => {
+    filteredDomains.forEach(domain => {
       if (!grouped[domain.renewalUrl]) {
         grouped[domain.renewalUrl] = [];
       }
@@ -198,12 +210,52 @@ export function Dashboard() {
 
         {/* Filters and View Mode */}
         <div className="glass-card rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          {/* Search Box */}
+          <div className="mb-4 sm:mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              搜索域名
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="输入域名地址或续期网址进行搜索..."
+                className="w-full px-4 py-3 pl-12 text-sm border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all bg-white/50 backdrop-blur-sm"
+              />
+              <svg className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <div className="mt-2 text-sm text-indigo-600 font-medium flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                找到 {filteredDomains.length} 个匹配的域名
+              </div>
+            )}
+          </div>
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3 sm:gap-0">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
-              筛选和视图
+              高级筛选
             </h3>
             <div className="flex gap-2 w-full sm:w-auto">
               <button
@@ -285,19 +337,19 @@ export function Dashboard() {
             </div>
           </div>
 
-          {(filterRenewalUrl || filterUsagePeriod || filterReminderCount) && (
+          {(searchQuery || filterRenewalUrl || filterUsagePeriod || filterReminderCount) && (
             <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 bg-indigo-50/80 backdrop-blur-sm rounded-xl p-3 border border-indigo-100">
               <div className="text-xs sm:text-sm text-indigo-700 font-medium flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                已应用 {[filterRenewalUrl, filterUsagePeriod, filterReminderCount].filter(Boolean).length} 个筛选条件
+                已应用 {[searchQuery, filterRenewalUrl, filterUsagePeriod, filterReminderCount].filter(Boolean).length} 个筛选条件
               </div>
               <button
                 onClick={clearFilters}
                 className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 font-semibold hover:underline"
               >
-                清除筛选
+                清除所有筛选
               </button>
             </div>
           )}
@@ -319,9 +371,25 @@ export function Dashboard() {
             <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">还没有域名</h3>
             <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">点击上方按钮添加您的第一个域名，开始管理续期提醒</p>
           </div>
+        ) : filteredDomains.length === 0 ? (
+          <div className="glass-card rounded-xl sm:rounded-2xl shadow-lg p-12 sm:p-16 text-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <svg className="w-8 h-8 sm:w-10 sm:h-10 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">没有找到匹配的域名</h3>
+            <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">尝试调整搜索关键词或清除筛选条件</p>
+            <button
+              onClick={clearFilters}
+              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              清除所有筛选
+            </button>
+          </div>
         ) : viewMode === 'list' ? (
           <DomainListView 
-            domains={domains}
+            domains={filteredDomains}
             onEdit={setEditingDomain}
             onDelete={setDeletingDomain}
             getDaysUntilExpiry={getDaysUntilExpiry}
@@ -329,7 +397,7 @@ export function Dashboard() {
           />
         ) : (
           <DomainGroupedView
-            domains={domains}
+            domains={filteredDomains}
             groupedDomains={groupDomainsByRenewalUrl()}
             onEdit={setEditingDomain}
             onDelete={setDeletingDomain}
