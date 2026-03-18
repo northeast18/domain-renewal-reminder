@@ -62,29 +62,29 @@ export function Login() {
 
   return (
     <AuthShell
-      eyebrow="Control Center"
-      title="登录你的提醒控制台"
-      description="在一个清爽、快速、可视化的工作台里查看域名状态、提醒节奏和邮件配置。"
-      sideTitle="更轻、更稳、更像一套控制面板"
-      sideDescription="新的界面围绕高频操作重新组织，重点信息更聚焦，交互反馈更明确，移动端也保持顺滑。"
+      eyebrow="用户登录"
+      title="登录系统"
+      description="输入已注册的邮箱和密码，进入域名续费提醒后台。"
+      sideTitle="当前页面可完成常用登录操作"
+      sideDescription="登录、验证提醒和重发验证邮件都在同一页面处理，减少无关跳转。"
       highlights={[
         {
-          title: '即时状态反馈',
-          description: '登录、验证、重发邮件等流程都在当前页面完成，减少跳转打断。',
+          title: '状态反馈明确',
+          description: '登录结果会直接显示，验证相关提示会在当前页更新。',
         },
         {
-          title: '简约科技风视觉',
-          description: '使用冷色金属质感、柔和网格背景和轻量动效，保持专业而不笨重。',
+          title: '入口集中',
+          description: '普通用户注册入口和管理员入口保留在同一处，便于区分访问路径。',
         },
         {
-          title: '响应式优先',
-          description: '表单、按钮和提示信息会在手机和桌面之间自然切换，不再显得拥挤。',
+          title: '适配常见设备',
+          description: '表单和提示信息在手机与桌面端都会保持可读和可操作。',
         },
       ]}
       footer={
         <>
           <div className="separator">
-            <span>More Access</span>
+            <span>其他入口</span>
           </div>
           <div className="button-row">
             <Link to="/register" className="secondary-button">

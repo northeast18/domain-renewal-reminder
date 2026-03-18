@@ -55,29 +55,29 @@ export function Register() {
 
   return (
     <AuthShell
-      eyebrow="New Account"
-      title="创建一套更聪明的域名提醒流程"
-      description="注册后即可接入到期提醒、域名分组和邮件通知流程。整个创建过程保持轻量，不会让第一次使用变得复杂。"
-      sideTitle="从今天开始，把续费提醒做成可追踪的流程"
-      sideDescription="你的信息、提醒频率和邮件通道都会在同一个控制台里统一管理，后续维护更省心。"
+      eyebrow="账号注册"
+      title="创建账户"
+      description="注册后即可使用域名续费提醒、邮件验证和后台管理功能。"
+      sideTitle="注册完成后进入标准验证流程"
+      sideDescription="系统会在创建账户后发送验证邮件，完成验证后即可登录。"
       highlights={[
         {
-          title: '验证流程清晰',
-          description: '注册完成后自动进入邮箱验证链路，避免不必要的额外配置。',
+          title: '验证步骤固定',
+          description: '注册成功后会发送验证邮件，避免遗漏账户激活步骤。',
         },
         {
-          title: '密码规则透明',
-          description: '注册页直接展示密码要求，减少提交后才发现不符合规则的挫败感。',
+          title: '密码规则明确',
+          description: '页面直接提示密码要求，提交前即可确认是否符合规范。',
         },
         {
-          title: '后续可扩展',
-          description: '进入控制台后即可继续配置批量导入、筛选规则和 SMTP 发送方式。',
+          title: '后续配置集中',
+          description: '登录后可继续维护域名、提醒频率和邮件发送配置。',
         },
       ]}
       footer={
         <>
           <div className="separator">
-            <span>Already Registered</span>
+            <span>已有账户</span>
           </div>
           <div className="button-row">
             <Link to="/login" className="secondary-button">

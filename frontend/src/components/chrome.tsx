@@ -31,8 +31,8 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
         <span></span>
       </div>
       <div className="brand-mark__copy">
-        <strong>域名到期提醒</strong>
-        <span>Renewal Control Center</span>
+        <strong>域名续费提醒</strong>
+        <span>Domain Renewal Reminder</span>
       </div>
     </div>
   );
@@ -66,7 +66,7 @@ export function AuthShell({
           <div className="auth-panel__orb auth-panel__orb--one"></div>
           <div className="auth-panel__orb auth-panel__orb--two"></div>
           <div className="auth-side__content">
-            <span className="auth-side__eyebrow">SYSTEM FLOW</span>
+            <span className="auth-side__eyebrow">系统说明</span>
             <h2>{sideTitle}</h2>
             <p>{sideDescription}</p>
             <ul className="auth-highlights">

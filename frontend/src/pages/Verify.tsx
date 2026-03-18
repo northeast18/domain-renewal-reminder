@@ -43,23 +43,23 @@ export function Verify() {
 
   return (
     <AuthShell
-      eyebrow="Verification"
+      eyebrow="邮箱验证"
       title="邮箱验证"
-      description="系统正在确认这封邮件是否属于你。完成后，你就可以直接进入登录流程。"
-      sideTitle="验证动作留在当前流程里完成"
-      sideDescription="不再依赖额外的前端地址配置，验证页会根据当前环境顺畅完成闭环。"
+      description="系统正在确认该验证链接是否有效。验证完成后将返回登录页。"
+      sideTitle="验证结果会在当前页直接反馈"
+      sideDescription="当前页面负责处理验证状态、失败提示和跳转，不需要额外操作。"
       highlights={[
         {
-          title: '状态即时可见',
-          description: '验证、失败、跳转都在同一视图里呈现，避免重复点击。',
+          title: '处理状态清晰',
+          description: '验证中、验证成功和验证失败都会直接显示在当前页。',
         },
         {
-          title: '减少环境耦合',
-          description: '邮件中的链接能够稳定回到当前前端，不需要额外维护前端域名变量。',
+          title: '返回路径固定',
+          description: '验证完成后会自动返回登录页，减少用户重复操作。',
         },
         {
-          title: '失败后可恢复',
-          description: '如果链接过期或缺失，用户可以回到登录页重新触发验证邮件。',
+          title: '失败后可重试',
+          description: '如果链接过期或缺失，可回到登录页重新发送验证邮件。',
         },
       ]}
       footer={
