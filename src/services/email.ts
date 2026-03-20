@@ -227,7 +227,7 @@ export class EmailService {
 
     return {
       success: true,
-      message: 'Email sent successfully via Resend',
+      message: 'Email accepted by Resend',
     };
   }
 
@@ -267,7 +267,7 @@ export class EmailService {
 
     return {
       success: true,
-      message: 'Email sent successfully via SendGrid',
+      message: 'Email accepted by SendGrid',
     };
   }
 
@@ -300,7 +300,7 @@ export class EmailService {
 
     return {
       success: true,
-      message: 'Email sent successfully via Mailgun',
+      message: 'Email accepted by Mailgun',
     };
   }
 
@@ -337,7 +337,7 @@ export class EmailService {
 
     return {
       success: true,
-      message: 'Email sent successfully via custom API',
+      message: 'Email accepted by custom email API',
     };
   }
 
@@ -514,7 +514,7 @@ export class EmailService {
 
         return {
           success: true,
-          message: 'Email sent successfully via SMTP',
+          message: 'Email accepted by SMTP server',
         };
       } finally {
         await writer.close();

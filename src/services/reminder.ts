@@ -146,8 +146,10 @@ export class ReminderService {
         return sendResult;
       }
 
-      // Increment reminder sent count
-      await this.incrementReminderSent(domain.id);
+      // Manual test runs should not consume the domain's scheduled reminder quota.
+      if (source === 'cron') {
+        await this.incrementReminderSent(domain.id);
+      }
 
       await adminService.recordEmailSend({
         userId: domain.user_id,
@@ -165,7 +167,9 @@ export class ReminderService {
 
       return {
         success: true,
-        message: 'Reminder sent successfully',
+        message: source === 'cron'
+          ? 'Reminder accepted and counted successfully'
+          : 'Reminder accepted successfully in manual mode',
       };
     } catch (error) {
       console.error('Send reminder error:', error);

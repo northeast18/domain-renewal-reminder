@@ -368,7 +368,15 @@ export class AdminService {
   async getEmailSendLogs(limit: number = 100): Promise<ApiResponse<EmailSendLog[]>> {
     try {
       const result = await this.db
-        .prepare('SELECT * FROM email_send_logs ORDER BY created_at DESC LIMIT ?')
+        .prepare(
+          `SELECT
+             email_send_logs.*,
+             COALESCE(email_send_logs.user_email, users.email) AS user_email
+           FROM email_send_logs
+           LEFT JOIN users ON users.id = email_send_logs.user_id
+           ORDER BY email_send_logs.created_at DESC
+           LIMIT ?`
+        )
         .bind(limit)
         .all();
 

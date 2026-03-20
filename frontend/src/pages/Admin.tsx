@@ -293,7 +293,7 @@ export function Admin() {
       if (response.success && response.data) {
         const result = response.data as ReminderRunResult;
         setLastReminderRun(result);
-        setReminderMessage(`本次共检查 ${result.processed} 条记录，发送成功 ${result.sent} 条，失败 ${result.failed} 条。`);
+        setReminderMessage(`本次共匹配 ${result.processed} 条记录，邮件服务已接收 ${result.sent} 条，失败 ${result.failed} 条。手动测试不会消耗正式提醒次数。`);
         void loadEmailLogs();
       } else {
         setReminderMessage(`执行失败：${response.error?.message || '未知错误'}`);
@@ -1110,7 +1110,10 @@ function RemindersTab({
             </button>
           </div>
           <div className="mt-4 rounded-xl border border-indigo-100 bg-white/80 p-4 text-sm text-gray-600">
-            定时任务仍会按每天 08:00（中国时间）执行。这里的手动执行不会修改域名到期时间或提醒起始时间，只是立即跑一次相同的筛选与发信流程。
+            定时任务仍会按每天 08:00（中国时间）执行。这里的手动执行不会修改域名到期时间或提醒起始时间，也不会消耗正式提醒次数，只是立即跑一次相同的筛选与发信流程。
+          </div>
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            这里显示的“成功”表示 SMTP 或邮件服务商已经受理该邮件，不等于收件箱一定已送达。若未收到，请优先检查垃圾箱、发件域名/SPF/DKIM 配置，以及服务商是否允许当前发件地址投递。
           </div>
           {message && (
             <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-gray-700">
@@ -1125,13 +1128,13 @@ function RemindersTab({
             <div className="mt-2 text-2xl font-bold text-gray-900">{lastRun?.source === 'manual' ? '手动' : '等待执行'}</div>
           </div>
           <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">最近检查数量</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">最近匹配数量</div>
             <div className="mt-2 text-2xl font-bold text-gray-900">{lastRun?.processed ?? '-'}</div>
           </div>
           <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">最近发送结果</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">最近提交结果</div>
             <div className="mt-2 text-sm font-semibold text-gray-900">
-              {lastRun ? `成功 ${lastRun.sent} / 失败 ${lastRun.failed}` : '暂无执行记录'}
+              {lastRun ? `已接收 ${lastRun.sent} / 失败 ${lastRun.failed}` : '暂无执行记录'}
             </div>
           </div>
         </div>
@@ -1160,7 +1163,7 @@ function RemindersTab({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${log.status === 'sent' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                        {log.status === 'sent' ? '发送成功' : '发送失败'}
+                        {log.status === 'sent' ? '已提交' : '发送失败'}
                       </span>
                       <span className="inline-flex rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">
                         {log.email_type === 'reminder' ? '提醒邮件' : '验证邮件'}
