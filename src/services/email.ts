@@ -129,6 +129,8 @@ export class EmailService {
       `
       : '';
 
+    const brandName = '爱自由域名管理';
+    const brandSubtitle = 'Domain Management Console';
     const brandBlock = `
       <table role="presentation" cellspacing="0" cellpadding="0" border="0">
         <tr>
@@ -145,8 +147,8 @@ export class EmailService {
             </table>
           </td>
           <td valign="middle">
-            <div style="font-size: 18px; line-height: 24px; font-weight: 700; color: #ffffff;">闁绘牞绮鹃崵婊堟偨閸楃偟鍘甸柛姘Ф椤撴悂鎮?/div>
-            <div style="font-size: 12px; line-height: 18px; color: rgba(255, 255, 255, 0.82);">Domain Management Console</div>
+            <div style="font-size: 18px; line-height: 24px; font-weight: 700; color: #ffffff;">${this.escapeHtml(brandName)}</div>
+            <div style="font-size: 12px; line-height: 18px; color: rgba(255, 255, 255, 0.82);">${this.escapeHtml(brandSubtitle)}</div>
           </td>
         </tr>
       </table>
@@ -160,7 +162,7 @@ export class EmailService {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${this.escapeHtml(title)}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #eef3f8; font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937;">
+<body style="margin: 0; padding: 0; background-color: #eef3f8; font-family: 'Microsoft YaHei', 'PingFang SC', 'Segoe UI', Arial, sans-serif; color: #1f2937;">
   <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">
     ${this.escapeHtml(preheader)}
   </div>
@@ -596,16 +598,15 @@ export class EmailService {
     const safeDomain = this.escapeHtml(domain.domain_address);
     const expiryLabel = this.escapeHtml(expiryDate.toLocaleDateString('zh-CN'));
     const remainingTone = isExpired || daysRemaining <= 7 ? '#c62828' : '#1565c0';
-    const statusLabel = isExpired ? `Expired ${overdueDays} days ago` : `${daysRemaining} days remaining`;
+    const statusLabel = isExpired ? `已过期 ${overdueDays} 天` : `剩余 ${daysRemaining} 天`;
     const statusIntro = isExpired
-      ? 'This domain has entered the post-expiry handling window. Please confirm its current status as soon as possible.'
-      : 'This domain has entered the notification window you configured. Please review its current status.';
+      ? '该域名已进入到期后的处理期，请尽快确认当前状态。'
+      : '该域名已进入你设置的提醒时间窗口，请及时留意当前状态。';
     const statusFooter = isExpired
-      ? 'If your registrar still supports recovery or post-expiry processing, please complete the required action in the registrar console as soon as possible.'
-      : 'If you have already handled this domain, you can ignore this message. To keep receiving notifications, make sure the current domain record and mailbox settings remain valid.';
-    const subject = isExpired
-      ? `Domain status notice: ${domain.domain_address} expired ${overdueDays} days ago`
-      : `Domain status notice: ${domain.domain_address} ${daysRemaining} days remaining`;
+      ? '如果你仍需继续处理该域名，请尽快进入处理入口查看最新状态。'
+      : '建议在方便时进入处理入口查看最新状态并安排后续操作。';
+    const subject = '账户通知 - 域名状态更新';
+    const actionUrl = domain.renewal_url;
 
     const content = `
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -621,20 +622,20 @@ export class EmailService {
                 <td style="padding: 20px 22px;">
                   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                     <tr>
-                      <td style="padding: 0 0 12px 0; font-size: 13px; line-height: 20px; color: #5f6f82;">Domain</td>
+                      <td style="padding: 0 0 12px 0; font-size: 13px; line-height: 20px; color: #5f6f82;">域名</td>
                       <td align="right" style="padding: 0 0 12px 12px; font-size: 15px; line-height: 22px; font-weight: 600; color: #102a43;">${safeDomain}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 12px 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">Expiry date</td>
+                      <td style="padding: 12px 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">到期日期</td>
                       <td align="right" style="padding: 12px 0 12px 12px; border-top: 1px solid #dbe5ef; font-size: 15px; line-height: 22px; color: #102a43;">${expiryLabel}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 12px 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">Current status</td>
+                      <td style="padding: 12px 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">当前状态</td>
                       <td align="right" style="padding: 12px 0 12px 12px; border-top: 1px solid #dbe5ef; font-size: 16px; line-height: 22px; font-weight: 700; color: ${remainingTone};">${statusLabel}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 12px 0 0 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">Suggested action</td>
-                      <td align="right" style="padding: 12px 0 0 12px; border-top: 1px solid #dbe5ef; font-size: 14px; line-height: 22px; color: #102a43;">Open the detail page and confirm the current status</td>
+                      <td style="padding: 12px 0 0 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">处理建议</td>
+                      <td align="right" style="padding: 12px 0 0 12px; border-top: 1px solid #dbe5ef; font-size: 14px; line-height: 22px; color: #102a43;">查看处理入口</td>
                     </tr>
                   </table>
                 </td>
@@ -651,29 +652,26 @@ export class EmailService {
     `.trim();
 
     const htmlBody = this.buildEmailLayout({
-      preheader: isExpired
-        ? `${domain.domain_address} expired ${overdueDays} days ago. Please review the current status.`
-        : `${domain.domain_address} has ${daysRemaining} days remaining. Please review the current status.`,
-      eyebrow: 'Domain Status Notice',
-      title: isExpired ? 'Domain Status Update' : 'Domain Status Notice',
-      intro: 'The system detected that this domain has entered the attention window you configured. The current status is shown below.',
+      preheader: `${domain.domain_address} 的状态已有更新。`,
+      eyebrow: '账户通知',
+      title: '域名状态更新',
+      intro: '系统检测到你账户中的一条域名记录已进入需要关注的时间窗口，以下是本次状态信息。',
       content,
-      actionLabel: 'View Details',
-      actionUrl: domain.renewal_url,
-      footer: 'This is an automated status notification. Please do not reply directly to this email. If you need to adjust the notification strategy, sign in to the system and update the domain settings.',
+      actionLabel: '进入处理入口',
+      actionUrl,
+      footer: '这是一封系统自动发送的账户通知邮件，请勿直接回复。',
     });
 
     const textBody = [
-      isExpired ? '[Domain Status Update]' : '[Domain Status Notice]',
-      `Domain: ${domain.domain_address}`,
-      `Expiry date: ${expiryDate.toLocaleDateString('zh-CN')}`,
-      `Current status: ${statusLabel}`,
-      '',
+      '[账户通知 - 域名状态更新]',
+      `域名：${domain.domain_address}`,
+      `到期日期：${expiryDate.toLocaleDateString('zh-CN')}`,
+      `当前状态：${statusLabel}`,
       isExpired
-        ? 'This domain is still in the post-expiry handling window. Please check the registrar console and confirm the current status as soon as possible.'
-        : 'This domain has entered the notification window you configured. Please check the registrar console and confirm the current status as soon as possible.',
-      'The detail entry is provided through the HTML email button. If you cannot open it, sign in to the system and review the processing address stored for this domain.',
-      'This is an automated status notification. Please do not reply directly to this email.',
+        ? '该域名当前处于到期后的处理期，请尽快确认状态。'
+        : '该域名当前处于你设置的提醒时间窗口，请及时留意状态。',
+      `处理入口：${actionUrl}`,
+      '这是一封系统自动发送的账户通知邮件，请勿直接回复。',
     ].join('\n');
 
     return { subject, htmlBody, textBody };
@@ -686,13 +684,13 @@ export class EmailService {
     const cleanBaseUrl = appUrl.replace(/\/$/, '');
     const verificationUrl = `${cleanBaseUrl}/verify?token=${token}`;
     const safeVerificationUrl = this.escapeHtml(verificationUrl);
-    const subject = 'Verify your email address';
+    const subject = '验证你的邮箱地址';
 
     const content = `
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
           <td style="padding: 0 0 18px 0; font-size: 15px; line-height: 24px; color: #334155;">
-            Welcome to the domain management console. Please verify your email address before signing in and receiving automated domain notifications.
+            欢迎使用爱自由域名管理。在登录系统和接收域名通知之前，请先完成邮箱验证。
           </td>
         </tr>
         <tr>
@@ -700,10 +698,10 @@ export class EmailService {
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fbfe; border: 1px solid #dbe5ef; border-radius: 14px;">
               <tr>
                 <td style="padding: 20px 22px; font-size: 14px; line-height: 23px; color: #334155;">
-                  <strong style="display: block; margin-bottom: 8px; color: #102a43;">Verification notes</strong>
-                  1. Use the button below to complete verification.<br>
-                  2. This verification link is valid for 24 hours.<br>
-                  3. If the button does not open, copy the backup link below into your browser.
+                  <strong style="display: block; margin-bottom: 8px; color: #102a43;">验证说明</strong>
+                  1. 点击下方按钮完成验证。<br>
+                  2. 验证链接 24 小时内有效。<br>
+                  3. 如果按钮无法打开，请复制下方链接到浏览器访问。
                 </td>
               </tr>
             </table>
@@ -711,7 +709,7 @@ export class EmailService {
         </tr>
         <tr>
           <td style="padding: 0 0 12px 0; font-size: 14px; line-height: 22px; color: #5f6f82;">
-            Backup verification link:
+            备用验证链接：
           </td>
         </tr>
         <tr>
@@ -723,24 +721,24 @@ export class EmailService {
     `.trim();
 
     const htmlBody = this.buildEmailLayout({
-      preheader: 'Verify your email address to activate sign-in and domain notifications.',
-      eyebrow: 'Account Verification',
-      title: 'Verify Your Email',
-      intro: 'Please confirm this email address so the system can deliver account and domain updates reliably.',
+      preheader: '完成邮箱验证后即可启用登录与域名通知。',
+      eyebrow: '账户验证',
+      title: '完成邮箱验证',
+      intro: '请先验证你当前的邮箱地址，以便系统能够稳定发送账户与域名通知。',
       content,
-      actionLabel: 'Verify Email',
+      actionLabel: '立即验证邮箱',
       actionUrl: verificationUrl,
-      footer: 'If you did not request this account, you can safely ignore this email. This message was sent automatically; please do not reply.',
+      footer: '如果这不是你本人发起的操作，可以直接忽略此邮件。这是一封系统自动发送的邮件，请勿直接回复。',
     });
 
     const textBody = [
-      '[Email Verification]',
-      'Welcome to the domain management console.',
-      'Use the link below to verify your email address. The link is valid for 24 hours:',
+      '[邮箱验证]',
+      '欢迎使用爱自由域名管理。',
+      '请使用以下链接完成邮箱验证，链接 24 小时内有效：',
       verificationUrl,
       '',
-      'If you did not request this account, you can safely ignore this email.',
-      'This message was sent automatically; please do not reply.',
+      '如果这不是你本人发起的操作，可以直接忽略此邮件。',
+      '这是一封系统自动发送的邮件，请勿直接回复。',
     ].join('\n');
 
     return { subject, htmlBody, textBody };
