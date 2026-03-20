@@ -8,6 +8,8 @@ import { getTodayUTC, dateToTimestamp } from '../utils/date';
 import { EmailService } from './email';
 import { AdminService } from './admin';
 
+const REMINDER_GRACE_PERIOD_DAYS = 30;
+
 export class ReminderService {
   constructor(
     private db: D1Database,
@@ -81,6 +83,8 @@ export class ReminderService {
    */
   private async getDomainsNeedingReminder(todayTimestamp: number): Promise<Domain[]> {
     try {
+      const gracePeriodStart = todayTimestamp - REMINDER_GRACE_PERIOD_DAYS * 24 * 60 * 60;
+
       const result = await this.db
         .prepare(
           `SELECT * FROM domains
@@ -89,7 +93,7 @@ export class ReminderService {
            AND reminders_sent < reminder_count
            ORDER BY expiry_date ASC`
         )
-        .bind(todayTimestamp, todayTimestamp)
+        .bind(todayTimestamp, gracePeriodStart)
         .all();
 
       return result.results as Domain[];

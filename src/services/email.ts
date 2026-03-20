@@ -540,17 +540,28 @@ export class EmailService {
   composeReminderEmail(domain: Domain): EmailTemplate {
     const expiryDate = timestampToDate(domain.expiry_date);
     const daysRemaining = getDaysUntilExpiry(expiryDate);
+    const isExpired = daysRemaining < 0;
+    const overdueDays = Math.abs(daysRemaining);
     const safeDomain = this.escapeHtml(domain.domain_address);
     const safeRenewalUrl = this.escapeHtml(domain.renewal_url);
     const expiryLabel = this.escapeHtml(expiryDate.toLocaleDateString('zh-CN'));
-    const remainingTone = daysRemaining <= 7 ? '#c62828' : '#1565c0';
-    const subject = `域名到期提醒：${domain.domain_address} 剩余 ${daysRemaining} 天`;
+    const remainingTone = isExpired || daysRemaining <= 7 ? '#c62828' : '#1565c0';
+    const statusLabel = isExpired ? `已过期 ${overdueDays} 天` : `剩余 ${daysRemaining} 天`;
+    const statusIntro = isExpired
+      ? '该域名已过期，但仍处于续费宽限提醒期内，请尽快处理。'
+      : '您配置的域名已经进入提醒窗口，请尽快检查续费状态，避免影响网站访问、邮件服务或后续业务流程。';
+    const statusFooter = isExpired
+      ? '该域名已进入到期后的宽限提醒阶段。若注册商仍支持恢复或续费，请尽快完成处理。'
+      : '如果您已经完成续费，可忽略此邮件；如需继续接收提醒，请保持当前域名记录与提醒邮箱配置有效。';
+    const subject = isExpired
+      ? `域名过期提醒：${domain.domain_address} 已过期 ${overdueDays} 天`
+      : `域名到期提醒：${domain.domain_address} 剩余 ${daysRemaining} 天`;
 
     const content = `
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
           <td style="padding: 0 0 18px 0; font-size: 15px; line-height: 24px; color: #334155;">
-            您配置的域名已经进入提醒窗口，请尽快检查续费状态，避免影响网站访问、邮件服务或后续业务流程。
+            ${statusIntro}
           </td>
         </tr>
         <tr>
@@ -568,8 +579,8 @@ export class EmailService {
                       <td align="right" style="padding: 12px 0 12px 12px; border-top: 1px solid #dbe5ef; font-size: 15px; line-height: 22px; color: #102a43;">${expiryLabel}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 12px 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">剩余时间</td>
-                      <td align="right" style="padding: 12px 0 12px 12px; border-top: 1px solid #dbe5ef; font-size: 16px; line-height: 22px; font-weight: 700; color: ${remainingTone};">${daysRemaining} 天</td>
+                      <td style="padding: 12px 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">当前状态</td>
+                      <td align="right" style="padding: 12px 0 12px 12px; border-top: 1px solid #dbe5ef; font-size: 16px; line-height: 22px; font-weight: 700; color: ${remainingTone};">${statusLabel}</td>
                     </tr>
                     <tr>
                       <td style="padding: 12px 0 0 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">续费地址</td>
@@ -583,16 +594,18 @@ export class EmailService {
         </tr>
         <tr>
           <td style="padding: 0; font-size: 14px; line-height: 22px; color: #5f6f82;">
-            如果您已经完成续费，可忽略此邮件；如需继续接收提醒，请保持当前域名记录与提醒邮箱配置有效。
+            ${statusFooter}
           </td>
         </tr>
       </table>
     `.trim();
 
     const htmlBody = this.buildEmailLayout({
-      preheader: `${domain.domain_address} 将在 ${daysRemaining} 天后到期，请及时续费。`,
+      preheader: isExpired
+        ? `${domain.domain_address} 已过期 ${overdueDays} 天，当前仍在宽限提醒期内。`
+        : `${domain.domain_address} 将在 ${daysRemaining} 天后到期，请及时续费。`,
       eyebrow: 'Domain Renewal Reminder',
-      title: '域名到期提醒',
+      title: isExpired ? '域名过期提醒' : '域名到期提醒',
       intro: '提醒服务已检测到有域名临近到期，以下是本次需要关注的关键信息。',
       content,
       actionLabel: '查看续费页面',
@@ -601,13 +614,15 @@ export class EmailService {
     });
 
     const textBody = [
-      '【域名到期提醒】',
+      isExpired ? '【域名过期提醒】' : '【域名到期提醒】',
       `域名：${domain.domain_address}`,
       `到期日期：${expiryDate.toLocaleDateString('zh-CN')}`,
-      `剩余时间：${daysRemaining} 天`,
+      `当前状态：${statusLabel}`,
       `续费地址：${domain.renewal_url}`,
       '',
-      '请尽快确认续费状态，避免影响网站访问或相关业务。',
+      isExpired
+        ? '该域名当前仍处于到期后的宽限提醒期内，请尽快确认是否还能恢复或续费。'
+        : '请尽快确认续费状态，避免影响网站访问或相关业务。',
       '这是一封系统自动发送的提醒邮件，请勿直接回复。',
     ].join('\n');
 
