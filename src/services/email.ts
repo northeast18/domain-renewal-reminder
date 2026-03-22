@@ -599,14 +599,17 @@ export class EmailService {
     const expiryLabel = this.escapeHtml(expiryDate.toLocaleDateString('zh-CN'));
     const remainingTone = isExpired || daysRemaining <= 7 ? '#c62828' : '#1565c0';
     const statusLabel = isExpired ? `已过期 ${overdueDays} 天` : `剩余 ${daysRemaining} 天`;
+    const summaryTitle = isExpired ? '域名已过期' : '域名到期提醒';
+    const subject = isExpired ? '账户通知 - 域名已过期' : '账户通知 - 域名到期提醒';
     const statusIntro = isExpired
-      ? '该域名已进入到期后的处理期，请尽快确认当前状态。'
-      : '该域名已进入你设置的提醒时间窗口，请及时留意当前状态。';
+      ? '你的域名已进入到期后的处理期，建议尽快确认当前状态。'
+      : '你的域名已进入提醒时间窗口，建议尽快查看状态并安排续期。';
     const statusFooter = isExpired
-      ? '如果你仍需继续处理该域名，请尽快进入处理入口查看最新状态。'
-      : '建议在方便时进入处理入口查看最新状态并安排后续操作。';
-    const subject = '账户通知 - 域名状态更新';
+      ? '如仍需继续保留该域名，建议尽快查看详情并处理后续操作。'
+      : '如需续期或确认当前状态，可点击下方按钮查看详情。';
     const actionUrl = domain.renewal_url;
+    const actionLabel = isExpired ? '查看域名状态' : '查看域名详情';
+    const actionSuggestion = isExpired ? '查看当前状态' : '查看续期信息';
 
     const content = `
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -634,8 +637,8 @@ export class EmailService {
                       <td align="right" style="padding: 12px 0 12px 12px; border-top: 1px solid #dbe5ef; font-size: 16px; line-height: 22px; font-weight: 700; color: ${remainingTone};">${statusLabel}</td>
                     </tr>
                     <tr>
-                      <td style="padding: 12px 0 0 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">处理建议</td>
-                      <td align="right" style="padding: 12px 0 0 12px; border-top: 1px solid #dbe5ef; font-size: 14px; line-height: 22px; color: #102a43;">查看处理入口</td>
+                      <td style="padding: 12px 0 0 0; border-top: 1px solid #dbe5ef; font-size: 13px; line-height: 20px; color: #5f6f82;">建议操作</td>
+                      <td align="right" style="padding: 12px 0 0 12px; border-top: 1px solid #dbe5ef; font-size: 14px; line-height: 22px; color: #102a43;">${actionSuggestion}</td>
                     </tr>
                   </table>
                 </td>
@@ -653,24 +656,26 @@ export class EmailService {
 
     const htmlBody = this.buildEmailLayout({
       preheader: `${domain.domain_address} 的状态已有更新。`,
-      eyebrow: '账户通知',
-      title: '域名状态更新',
-      intro: '系统检测到你账户中的一条域名记录已进入需要关注的时间窗口，以下是本次状态信息。',
+      eyebrow: '域名提醒',
+      title: summaryTitle,
+      intro: isExpired
+        ? '系统检测到你的域名已过期，请及时查看当前状态。'
+        : '系统检测到你的域名已进入提醒时间窗口，请及时查看相关信息。',
       content,
-      actionLabel: '进入处理入口',
+      actionLabel,
       actionUrl,
       footer: '这是一封系统自动发送的账户通知邮件，请勿直接回复。',
     });
 
     const textBody = [
-      '[账户通知 - 域名状态更新]',
+      `[${subject}]`,
       `域名：${domain.domain_address}`,
       `到期日期：${expiryDate.toLocaleDateString('zh-CN')}`,
       `当前状态：${statusLabel}`,
       isExpired
-        ? '该域名当前处于到期后的处理期，请尽快确认状态。'
-        : '该域名当前处于你设置的提醒时间窗口，请及时留意状态。',
-      `处理入口：${actionUrl}`,
+        ? '该域名当前处于到期后的处理期，请尽快查看当前状态。'
+        : '该域名当前处于提醒时间窗口，请及时留意并安排续期。',
+      `查看详情：${actionUrl}`,
       '这是一封系统自动发送的账户通知邮件，请勿直接回复。',
     ].join('\n');
 

@@ -1,371 +1,250 @@
 # 爱自由域名管理 / Domain Renewal Reminder Service
 
-<div align="center">
+一个基于 Cloudflare Workers、D1、KV 和 React 的域名到期提醒系统。  
+核心目标是让用户集中管理域名、提醒时间、邮箱通知和管理员配置，并尽量用免费套餐完成部署。
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
-![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers-orange.svg)
+- 后端：Cloudflare Workers + Hono + D1 + KV
+- 前端：React 19 + Vite + Tailwind CSS
+- 邮件：支持 HTTP API 与 SMTP
+- 定时任务：Cloudflare Cron
 
-一个基于 Cloudflare 免费资源构建的域名续期提醒服务，帮助你及时续期域名，避免域名过期。
+## 当前功能
 
-[English](#english) | [中文](#中文)
-
-</div>
-
----
-
-## 中文
-
-### 📖 简介
-
-爱自由域名管理是一个完全免费的 Web 应用，帮助用户管理域名的续期时间。通过自动化的邮件提醒机制，确保你不会错过任何域名的续期时间。
-
-**核心特性：**
-- ✅ 用户注册和邮箱验证
-- ✅ 域名管理（添加、编辑、删除）
-- ✅ 自动计算到期日期和提醒日期
-- ✅ 定时邮件提醒（每天自动检查）
-- ✅ 灵活的邮件配置（支持 HTTP API 和 SMTP）
-- ✅ 域名过滤和分组
-- ✅ 管理员面板（用户管理、邮件配置）
-- ✅ 隐藏式管理员入口（三击标题或按 `K` 三次唤出）
-- ✅ 响应式设计（支持手机、平板、电脑）
-- ✅ 完全免费（基于 Cloudflare 免费套餐）
-
-### 🏗️ 技术栈
-
-**后端：**
-- Cloudflare Workers（Serverless 计算）
-- Hono（轻量级 Web 框架）
-- TypeScript
-- Cloudflare D1（SQLite 数据库）
-- Cloudflare KV（键值存储）
-- Cloudflare Cron Triggers（定时任务）
-
-**前端：**
-- React 19
-- Vite
-- Tailwind CSS
-- TypeScript
-- React Router
-
-**安全：**
-- PBKDF2 密码哈希（Web Crypto API）
-- AES-256-GCM 数据加密
-- 会话管理
-- 速率限制
-
-### 🚀 快速开始
-
-**部署顺序：**
-1. 先部署后端 → [完整部署指南](DEPLOYMENT_GUIDE.md)
-2. 再部署前端 → [Git 集成部署](GIT_DEPLOYMENT_GUIDE.md)（推荐）
-
-### 📚 文档
-
-- [完整部署指南](DEPLOYMENT_GUIDE.md) - 后端 + 前端完整步骤
-- [Git 集成部署](GIT_DEPLOYMENT_GUIDE.md) - 前端自动部署（推荐）
-- [邮件服务配置](EMAIL_SETUP.md) - 支持 HTTP API 和 SMTP 两种方式
-
-### 🛠️ 本地开发
-
-#### 前置要求
-
-- Node.js v18+
-- npm
-- Wrangler CLI
-
-#### 安装依赖
-
-```bash
-# 安装后端依赖
-npm install
-
-# 安装前端依赖
-cd frontend
-npm install
-cd ..
-```
-
-#### 配置本地环境
-
-```bash
-# 复制环境变量示例
-cp .env.example .env
-
-# 创建本地 D1 数据库
-wrangler d1 create domain_renewal_db_dev
-
-# 初始化数据库
-wrangler d1 execute domain_renewal_db_dev --file=schema.sql
-
-# 创建本地 KV
-wrangler kv:namespace create "KV" --preview
-```
-
-#### 启动开发服务器
-
-```bash
-# 启动后端（终端 1）
-npm run dev
-
-# 启动前端（终端 2）
-cd frontend
-npm run dev
-```
-
-访问：
-- 前端：http://localhost:5173
-- 后端：http://localhost:8787
-
-#### 运行测试
-
-```bash
-# 运行所有测试
-npm test
-
-# 运行类型检查
-npm run type-check
-
-# 查看测试覆盖率
-npm run test:coverage
-```
-
-### 📦 项目结构
-
-```
-domain-renewal-reminder/
-├── src/                      # 后端源代码
-│   ├── index.ts             # 主入口
-│   ├── middleware/          # 中间件
-│   ├── routes/              # API 路由
-│   ├── services/            # 业务逻辑
-│   ├── types/               # TypeScript 类型
-│   └── utils/               # 工具函数
-├── frontend/                 # 前端源代码
-│   ├── src/
-│   │   ├── api/            # API 客户端
-│   │   ├── contexts/       # React Context
-│   │   ├── pages/          # 页面组件
-│   │   └── main.tsx        # 前端入口
-│   └── public/             # 静态资源
-├── schema.sql               # 数据库 Schema
-├── wrangler.toml           # Cloudflare 配置
-├── package.json            # 后端依赖
-└── frontend/package.json   # 前端依赖
-```
-
-### 📧 邮件配置
-
-本系统支持两种邮件发送方式，可在管理员面板中灵活切换：
-
-#### 方式一：HTTP API（推荐）
-
-使用第三方邮件服务的 HTTP API，配置简单，可靠性高。
-
-**支持的服务商：**
-- **Resend**（推荐）- 100 封/天免费额度
-- **SendGrid** - 100 封/天免费额度
-- **Mailgun** - 5,000 封/月免费额度
-- **自定义 API** - 支持任何 HTTP API
-
-**优点：**
-- ✅ 配置简单，只需 API Key
-- ✅ 高可靠性，专业团队维护
-- ✅ 免费额度足够个人使用
-- ✅ 自动处理重试和日志
-
-#### 方式二：SMTP（高级）
-
-使用传统 SMTP 协议，适合企业邮箱或自建邮件服务器。
-
-**支持的端口：**
-- 465（SSL）
-- 587（TLS）
-- ❌ 端口 25 被 Cloudflare Workers 禁止
-
-**适用场景：**
-- 企业邮箱（如 Gmail、Outlook）
-- 自建邮件服务器
-- 需要使用特定 SMTP 服务
-
-**注意事项：**
-- ⚠️ 配置相对复杂
-- ⚠️ 需要 SMTP 服务器支持 SSL/TLS
-- ⚠️ 调试难度较高
-
-#### 配置步骤
-
-1. 打开登录页，通过以下任一方式唤出管理员入口：
-   - 连续点击网站标题 3 次
-   - 在非输入状态下连续按 `K` 键 3 次
-2. 点击出现的“管理员入口”，或直接访问：`https://你的域名/admin`
-3. 进入"SMTP 配置"标签
-4. 选择邮件发送方式（HTTP API 或 SMTP）
-5. 填写相应的配置信息
-6. 保存并测试
-
-详细配置指南请查看 [邮件服务配置文档](EMAIL_SETUP.md)。
-
-### 🔐 安全特性
-
-- **密码安全**：PBKDF2 哈希（100,000 轮迭代，Web Crypto API）
-- **数据加密**：AES-256-GCM 加密敏感数据
-- **会话管理**：安全的随机 token，7天自动过期
-- **速率限制**：防止暴力破解（10请求/分钟）
-- **邮箱验证**：白名单机制，支持 15+ 主流邮箱
-- **访问控制**：用户认证和管理员认证中间件
-- **入口隐藏**：管理员入口默认不显示，需通过标题三击或按键三次触发后才会出现
-
-### 📊 数据库设计
-
-**users 表：**
-- 用户信息
-- 邮箱验证状态
-- 黑名单状态
-
-**domains 表：**
-- 域名信息
-- 到期日期（自动计算）
-- 提醒设置
-- 提醒发送记录
-
-**admin_logs 表：**
+- 用户注册、登录、邮箱验证
+- 域名新增、编辑、删除、分组查看
+- 可配置提醒开始日期、提醒次数、提醒邮箱
+- 每天自动执行提醒检查
+- 到期后 30 天内仍可继续提醒
+- 管理员 SMTP / HTTP API 发信配置
 - 管理员操作日志
-- 审计追踪
+- 发信记录查看
+- 管理员手动触发一次提醒检查
+- 隐藏式管理员入口
+- 登录页、控制台、管理页响应式适配
 
-### 🎯 API 端点
+## 提醒规则
 
-#### 认证
-- `POST /api/auth/register` - 用户注册
-- `POST /api/auth/verify` - 邮箱验证
-- `POST /api/auth/login` - 用户登录
-- `POST /api/auth/logout` - 用户登出
-- `GET /api/auth/me` - 获取当前用户
+当前提醒逻辑以实际代码为准，关键规则如下：
 
-#### 域名管理
-- `POST /api/domains` - 添加域名
-- `GET /api/domains` - 获取域名列表
-- `GET /api/domains/grouped` - 获取分组域名
-- `PUT /api/domains/:id` - 更新域名
-- `DELETE /api/domains/:id` - 删除域名
+- Cron 配置在 [wrangler.toml](/D:/domain-renewal-reminder-main/wrangler.toml)，表达式是 `0 0 * * *`
+- 这表示每天 `00:00 UTC` 执行一次，换算为中国时间是每天 `08:00`
+- 当 `reminder_start_date <= 今天` 时，域名会进入提醒范围
+- 当域名过期后，只要仍在 30 天宽限期内，且提醒次数未发满，系统仍会继续提醒
+- 管理员在后台手动触发提醒检查时，不会消耗正式提醒次数
+- 正式提醒次数只会在 cron 触发并且邮件发送被 SMTP / 邮件服务受理后递增
 
-#### 管理员
-- `GET /api/admin/users` - 用户列表
-- `POST /api/admin/users/:id/blacklist` - 拉黑用户
-- `DELETE /api/admin/users/:id` - 删除用户
-- `POST /api/admin/smtp` - 更新 SMTP 配置
-- `GET /api/admin/smtp` - 获取 SMTP 配置
-- `GET /api/admin/logs` - 获取操作日志
+实现参考：
 
-### 💰 成本估算
+- [reminder.ts](/D:/domain-renewal-reminder-main/src/services/reminder.ts)
+- [email.ts](/D:/domain-renewal-reminder-main/src/services/email.ts)
 
-使用 Cloudflare 免费套餐：
-- **Workers**: 100,000 请求/天 ✅ 免费
-- **D1**: 5GB 存储，500万行读取/天 ✅ 免费
-- **KV**: 100,000 读取/天，1,000 写入/天 ✅ 免费
-- **Pages**: 500 次构建/月 ✅ 免费
+## 管理员入口
 
-**结论：对于个人使用或小型团队，完全免费！**
+管理员入口默认隐藏，不会直接显示在登录页。
 
-### 📄 许可证
+唤出方式：
 
-MIT License
+1. 连续点击网站标题 3 次
+2. 在非输入状态下连续按 `K` 3 次
 
-### 📞 支持
+管理员能力包括：
 
-如果遇到问题：
-1. 查看 [部署指南](DEPLOYMENT_GUIDE.md)
-2. 查看 [常见问题](DEPLOYMENT_GUIDE.md#常见问题)
-3. 提交 GitHub Issue
+- 用户管理
+- SMTP / HTTP API 配置
+- 操作日志
+- 发信记录
+- 手动执行一次提醒检查
 
----
+相关前后端文件：
 
-## English
+- [Login.tsx](/D:/domain-renewal-reminder-main/frontend/src/pages/Login.tsx)
+- [Admin.tsx](/D:/domain-renewal-reminder-main/frontend/src/pages/Admin.tsx)
+- [admin.ts](/D:/domain-renewal-reminder-main/src/routes/admin.ts)
 
-### 📖 Introduction
+## 邮件能力
 
-Domain Renewal Reminder Service (爱自由域名管理) is a completely free web application that helps users manage domain renewal times. Through automated email reminder mechanisms, ensure you never miss any domain renewal deadline.
+系统当前支持两种发信方式：
 
-**Core Features:**
-- ✅ User registration and email verification
-- ✅ Domain management (add, edit, delete)
-- ✅ Automatic calculation of expiry and reminder dates
-- ✅ Scheduled email reminders (daily automatic checks)
-- ✅ Domain filtering and grouping
-- ✅ Admin panel (user management, SMTP configuration)
-- ✅ Hidden admin entry (triple-click the title or press `K` three times)
-- ✅ Responsive design (mobile, tablet, desktop)
-- ✅ Completely free (based on Cloudflare free tier)
+- HTTP API：如 Resend、SendGrid、Mailgun、自定义 API
+- SMTP：支持 465 / 587，已补标准头、MIME 编码和更完整的 SMTP 握手处理
 
-### 🏗️ Tech Stack
+当前邮件能力包含：
 
-**Backend:**
-- Cloudflare Workers (Serverless computing)
-- Hono (Lightweight web framework)
-- TypeScript
-- Cloudflare D1 (SQLite database)
-- Cloudflare KV (Key-value storage)
-- Cloudflare Cron Triggers (Scheduled tasks)
+- 注册验证邮件
+- 重发验证邮件
+- 域名到期提醒邮件
+- 发信记录落库
 
-**Frontend:**
-- React 19
-- Vite
-- Tailwind CSS
-- TypeScript
-- React Router
+相关文件：
 
-**Security:**
-- PBKDF2 password hashing (Web Crypto API)
-- AES-256-GCM data encryption
-- Session management
-- Rate limiting
+- [email.ts](/D:/domain-renewal-reminder-main/src/services/email.ts)
+- [auth.ts](/D:/domain-renewal-reminder-main/src/routes/auth.ts)
+- [admin.ts](/D:/domain-renewal-reminder-main/src/services/admin.ts)
 
-### 🚀 Quick Start
+## 发信记录与手动测试
 
-#### Method 1: 5-Minute Quick Deploy
+管理员后台现在支持两项排障能力：
 
-See [Quick Deploy Guide](QUICK_DEPLOY.md)
+- 查看最近发信记录
+- 立即手动执行一次提醒检查
 
-#### Method 2: Complete Deployment
+接口：
 
-See [Complete Deployment Guide](DEPLOYMENT_GUIDE.md)
+- `GET /api/admin/email-logs`
+- `POST /api/admin/reminders/run`
 
-#### Method 3: Use Checklist
+说明：
 
-See [Deployment Checklist](DEPLOYMENT_CHECKLIST.md)
+- 手动执行会走正式提醒筛选逻辑
+- 但手动执行不会增加 `reminders_sent`
+- 发信记录会记录邮件类型、触发来源、收件人、状态和错误信息
 
-### 📚 Documentation
+## 数据库
 
-- [Complete Deployment Guide](DEPLOYMENT_GUIDE.md) - Detailed deployment steps and configuration
-- [Quick Deploy Guide](QUICK_DEPLOY.md) - 5-minute quick deployment
-- [Deployment Checklist](DEPLOYMENT_CHECKLIST.md) - Ensure all steps are completed
-- [Backend Status Report](BACKEND_STATUS.md) - Backend code integrity check
-- [Quick Start](QUICKSTART.md) - Project overview and usage
-- [Implementation Status](IMPLEMENTATION_STATUS.md) - Feature implementation progress
+当前主要表包括：
 
-### 🛠️ Local Development
+- `users`
+- `domains`
+- `admin_logs`
+- `email_send_logs`
 
-See the Chinese section above for detailed local development instructions.
+Schema 文件：
 
-### 📄 License
+- [schema.sql](/D:/domain-renewal-reminder-main/schema.sql)
 
-MIT License
+新增发信记录表的迁移文件：
 
-### 📞 Support
+- [0002_email_send_logs.sql](/D:/domain-renewal-reminder-main/migrations/0002_email_send_logs.sql)
 
-If you encounter issues:
-1. Check [Deployment Guide](DEPLOYMENT_GUIDE.md)
-2. Check [FAQ](DEPLOYMENT_GUIDE.md#常见问题)
-3. Submit GitHub Issue
+## 部署与迁移
 
----
+### 环境要求
 
-<div align="center">
+- Node.js 18+
+- npm
+- Wrangler 4
 
-Made with ❤️ using Cloudflare Workers
+### 本地安装
 
-[⬆ Back to Top](#爱自由域名管理--domain-renewal-reminder-service)
+```bash
+npm install
+cd frontend
+npm install
+```
 
-</div>
+### 本地开发
+
+后端：
+
+```bash
+npm run dev
+```
+
+前端：
+
+```bash
+cd frontend
+npm run dev
+```
+
+### 生产部署
+
+后端部署：
+
+```bash
+npx wrangler deploy
+```
+
+前端构建：
+
+```bash
+cd frontend
+npm run build
+```
+
+### 重要：老库升级需要执行迁移
+
+如果你的 D1 数据库不是新建的，而是旧环境升级到当前版本，除了更新代码和重新部署后端，还需要执行发信记录迁移：
+
+```bash
+npx wrangler d1 execute domain_renewal_db --remote --file=migrations/0002_email_send_logs.sql
+```
+
+否则：
+
+- 发信记录功能不可用
+- 管理员后台的邮件记录列表会缺表
+
+## 项目结构
+
+```text
+domain-renewal-reminder/
+├─ src/
+│  ├─ index.ts
+│  ├─ middleware/
+│  ├─ routes/
+│  ├─ services/
+│  ├─ types/
+│  └─ utils/
+├─ frontend/
+│  ├─ src/
+│  │  ├─ api/
+│  │  ├─ assets/
+│  │  ├─ components/
+│  │  ├─ contexts/
+│  │  └─ pages/
+│  └─ public/
+├─ migrations/
+├─ schema.sql
+├─ wrangler.toml
+└─ README.md
+```
+
+## API 概览
+
+### 认证
+
+- `POST /api/auth/register`
+- `POST /api/auth/verify`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `POST /api/auth/resend-verification`
+
+### 域名
+
+- `POST /api/domains`
+- `GET /api/domains`
+- `GET /api/domains/grouped`
+- `PUT /api/domains/:id`
+- `DELETE /api/domains/:id`
+
+### 管理员
+
+- `GET /api/admin/users`
+- `POST /api/admin/users/:id/blacklist`
+- `DELETE /api/admin/users/:id`
+- `POST /api/admin/smtp`
+- `GET /api/admin/smtp`
+- `GET /api/admin/logs`
+- `GET /api/admin/email-logs`
+- `POST /api/admin/reminders/run`
+
+## 当前已知但非阻塞的问题
+
+- 前端仍有一个 Vite 警告：`frontend/src/api/client.ts` 同时被静态和动态导入
+- README 之外的部分历史文档还没有全部同步到最新功能状态
+- 邮件模板与投递已可用，但如果更换 SMTP 服务商，仍建议再次做真实收件测试
+
+## 建议的运维检查项
+
+- 确认 `ADMIN_PASSWORD` 与 `ENCRYPTION_KEY` 已配置
+- 确认 D1 / KV 绑定已生效
+- 确认 cron 已部署成功
+- 确认 SMTP 或 HTTP API 发信配置可用
+- 生产升级时确认迁移是否已执行
+- 用真实邮箱验证注册邮件和提醒邮件都能收到
+
+## License
+
+MIT
