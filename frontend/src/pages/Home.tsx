@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 import { BrandLogo } from '../components/logo';
 
 const heroSignals = [
-  { label: '提醒策略', value: '支持按到期前 30 / 15 / 7 天分段提醒' },
-  { label: '导入方式', value: '手动录入、CSV 批量导入、AI 辅助识别' },
-  { label: '处理闭环', value: '提醒中、已处理、已暂停、已放弃全程可追踪' },
+  { label: '提醒策略', value: '30 / 15 / 7 天分级提醒' },
+  { label: '导入方式', value: '手动、CSV、AI 导入' },
+  { label: '处理闭环', value: '状态、责任人、日志闭环' },
 ];
 
 const dashboardStats = [
@@ -22,78 +22,71 @@ const reminderQueue = [
 const capabilities = [
   {
     badge: 'Domain Desk',
-    title: '把零散域名收进同一个控制台',
-    description:
-      '域名、注册商、到期时间、续费地址、处理人和备注都在一个地方，搜索和排查比翻表格快得多。',
+    title: '统一管理域名资产',
+    description: '域名、到期日、注册商与备注统一归档。',
   },
   {
     badge: 'Reminder Engine',
-    title: '把“记得续费”变成自动执行',
-    description:
-      '系统按计划巡检并生成提醒，不用依赖个人记忆，也不用靠每个月重新查一遍日历。',
+    title: '自动执行续费提醒',
+    description: '按策略巡检并触发提醒，减少人工跟踪。',
   },
   {
     badge: 'Workflow',
-    title: '把处理状态和责任归属说清楚',
-    description:
-      '每个域名当前是谁在跟进、处理到哪一步、什么时候续费过，都能被团队成员一眼看懂。',
+    title: '清晰追踪处理状态',
+    description: '状态、责任人、处理时间实时同步。',
   },
   {
     badge: 'Batch Import',
-    title: '把历史资产更快迁进来',
-    description:
-      '支持 CSV 导入和 AI 识别整理，适合把旧表格、聊天记录或零散清单逐步迁移到系统里。',
+    title: '快速导入历史数据',
+    description: '支持 CSV 与 AI 识别，低成本迁移旧数据。',
   },
 ];
 
 const workflow = [
   {
     step: '01',
-    title: '录入或导入域名资产',
-    description: '先建立统一清单，再把到期时间、续费入口、负责人和备注补充完整。',
+    title: '导入资产',
+    description: '建立统一域名清单。',
   },
   {
     step: '02',
-    title: '系统自动计算提醒窗口',
-    description: '根据到期时间生成提醒开始时间和提醒频率，减少人工维护规则的负担。',
+    title: '生成提醒',
+    description: '按到期日自动计算提醒窗口。',
   },
   {
     step: '03',
-    title: '处理人更新状态与结果',
-    description: '谁接手、是否已经续费、为什么暂停或放弃，都会沉淀在当前记录里。',
+    title: '更新状态',
+    description: '处理结果与责任归属实时留痕。',
   },
   {
     step: '04',
-    title: '续费完成后进入下一轮',
-    description: '一旦标记续费，系统会切换到新的到期周期，避免完成一次后又重新漏管。',
+    title: '续费接续',
+    description: '续费完成后自动进入下一周期。',
   },
 ];
 
 const trustCards = [
   {
     label: '适合谁',
-    title: '个人站长也能用，小团队更能受益',
-    description:
-      '一个人管理多个域名时能防漏；2 到 10 人协作时，更能把责任归属和处理节奏固定下来。',
+    title: '个人与小团队',
+    description: '适合多域名的长期管理与协作交接。',
   },
   {
     label: '部署方式',
-    title: '基于 Cloudflare 的轻运维方案',
-    description:
-      '前端运行在 Pages，任务与接口运行在 Workers，数据由 D1 与 KV 承接，不需要自己维护传统服务器。',
+    title: 'Cloudflare 原生部署',
+    description: 'Pages、Workers、D1、KV 组合，轻量稳定。',
   },
   {
     label: '管理透明度',
-    title: '不是提醒一下就结束，而是把过程留住',
-    description:
-      '从提醒触发到续费完成，每个阶段都有状态和备注可以追溯，适合做长期资产管理。',
+    title: '全链路可追踪',
+    description: '提醒、处理、续费记录统一留痕。',
   },
 ];
 
 const productHighlights = [
-  '首页不是宣传图，而是把你每天真正需要看的提醒视图先摆出来。',
-  '状态设计面向实际协作，不只区分“到期”和“未到期”。',
-  '信息结构优先照顾移动端，避免在手机上横向滚动和难点按。',
+  '首页直出提醒视图',
+  '状态模型面向协作',
+  '移动端优先布局',
 ];
 
 export function Home() {
@@ -145,23 +138,19 @@ export function Home() {
       <main id="home-main-content" className="app-main landing-main">
         <section className="landing-hero animate-slideUp" aria-labelledby="hero-title">
           <div className="liquid-panel liquid-panel--hero">
-            <div className="liquid-chip">Product-grade Homepage</div>
+            <div className="liquid-chip">Domain Ops</div>
             <div className="landing-copy">
-              <p className="landing-kicker">Domain Renewal Operations</p>
-              <h1 id="hero-title" className="landing-title">
-                把域名续费从“别忘了”变成一套稳定运转的流程
-              </h1>
-              <p className="landing-description">
-                爱自由域名管理把域名记录、提醒节奏、处理状态和续费结果整合到同一个控制台，帮助个人站长、工作室和小团队更稳地守住自己的线上资产。
-              </p>
+              <p className="landing-kicker">DOMAIN RENEWAL CONTROL</p>
+              <h1 id="hero-title" className="landing-title">域名续费控制台</h1>
+              <p className="landing-description">集中管理域名资产、提醒策略与续费状态。</p>
             </div>
 
             <div className="landing-actions">
               <Link to="/register" className="primary-button">
-                注册并建立清单
+                立即开始
               </Link>
               <Link to="/login" className="secondary-button">
-                登录查看控制台
+                查看控制台
               </Link>
             </div>
 
@@ -186,7 +175,7 @@ export function Home() {
               <div className="liquid-preview__header">
                 <div>
                   <div className="liquid-preview__eyebrow">Live board preview</div>
-                  <h2>首页先交付你真正关心的提醒视图</h2>
+                  <h2>关键提醒，一屏掌握</h2>
                 </div>
                 <div className="liquid-status-pill">
                   <span className="liquid-status-pill__dot" aria-hidden="true" />
@@ -227,13 +216,13 @@ export function Home() {
               <div className="liquid-stack">
                 <div className="liquid-stack-card liquid-stack-card--accent">
                   <div className="liquid-stack-card__label">工作方式</div>
-                  <div className="liquid-stack-card__title">记录、提醒、处理、续费接续</div>
-                  <p>不是只发一次提醒，而是让每次续费动作都能衔接回下一轮周期。</p>
+                  <div className="liquid-stack-card__title">记录 / 提醒 / 续费闭环</div>
+                  <p>续费完成后自动进入下一周期。</p>
                 </div>
                 <div className="liquid-stack-card">
                   <div className="liquid-stack-card__label">部署结构</div>
                   <div className="liquid-stack-card__title">Cloudflare Pages + Workers + D1 + KV</div>
-                  <p>前台体验轻，后台任务稳定，适合长期托管域名类资产管理工具。</p>
+                  <p>Cloudflare 原生栈，轻量部署，稳定运行。</p>
                 </div>
               </div>
             </div>
@@ -243,10 +232,8 @@ export function Home() {
         <section id="capabilities" className="landing-section animate-slideUp" aria-labelledby="capabilities-title">
           <div className="landing-section__heading">
             <div className="liquid-chip">Capabilities</div>
-            <h2 id="capabilities-title">首页把产品能力讲清楚，也把使用后的工作状态展示清楚</h2>
-            <p>
-              这不是一页只写“支持提醒”的介绍，而是把域名资产管理真正会遇到的录入、排查、协作与续费回路，一起组织进产品叙事里。
-            </p>
+            <h2 id="capabilities-title">为域名资产建立统一续费系统</h2>
+            <p>聚焦管理、提醒、协作与续费接续。</p>
           </div>
 
           <div className="landing-feature-grid">
@@ -263,10 +250,8 @@ export function Home() {
         <section id="workflow" className="landing-section animate-slideUp" aria-labelledby="workflow-title">
           <div className="landing-section__heading">
             <div className="liquid-chip">Workflow</div>
-            <h2 id="workflow-title">用四步把续费管理从临时救火变成可持续运营</h2>
-            <p>
-              页面里的工作流部分不是概念图，而是为了让第一次访问的人马上理解系统上线之后，团队每天会如何使用它。
-            </p>
+            <h2 id="workflow-title">四步完成域名续费闭环</h2>
+            <p>从导入到续费接续，全程自动衔接。</p>
           </div>
 
           <div className="workflow-grid">
@@ -285,10 +270,8 @@ export function Home() {
         <section id="trust" className="landing-section animate-slideUp" aria-labelledby="trust-title">
           <div className="landing-section__heading">
             <div className="liquid-chip">Trust Layer</div>
-            <h2 id="trust-title">产品可信度来自部署方式、协作清晰度和长期可维护性</h2>
-            <p>
-              对域名这类长期资产来说，首页不仅要“好看”，还要让用户相信这套产品能长期跑、能交接、能追踪。
-            </p>
+            <h2 id="trust-title">轻量部署，清晰协作，持续可追踪</h2>
+            <p>面向长期运行的域名管理场景。</p>
           </div>
 
           <div className="trust-grid">
@@ -306,19 +289,15 @@ export function Home() {
           <div className="liquid-panel liquid-panel--cta">
             <div>
               <div className="liquid-chip liquid-chip--soft">Ready to Start</div>
-              <h2 id="cta-title" className="landing-cta__title">
-                先把域名资产收拢起来，再把提醒和续费交给系统持续运转
-              </h2>
-              <p className="landing-cta__text">
-                如果你已经有一份旧表格或正在靠聊天记录记域名，现在就是把它整理进正式产品的最好时机。
-              </p>
+              <h2 id="cta-title" className="landing-cta__title">把域名续费管理交给系统</h2>
+              <p className="landing-cta__text">现在开始建立你的域名控制台。</p>
             </div>
             <div className="landing-actions landing-actions--compact">
               <Link to="/register" className="primary-button">
-                创建账户
+                立即注册
               </Link>
               <Link to="/login" className="secondary-button">
-                已有账户，立即登录
+                立即登录
               </Link>
             </div>
           </div>
