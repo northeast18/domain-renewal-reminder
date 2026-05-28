@@ -1,0 +1,4 @@
+{
+  "src/**/*.ts": "eslint --fix",
+  "frontend/src/**/*.{ts,tsx}": "bash -c 'cd frontend && eslint --fix \"$@\"' _"
+}

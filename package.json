@@ -11,7 +11,9 @@
     "test:coverage": "vitest --coverage",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix"
+    "lint:fix": "eslint src --ext .ts --fix",
+    "lint:all": "npm run lint && cd frontend && npm run lint",
+    "prepare": "husky"
   },
   "keywords": [
     "cloudflare",
@@ -29,6 +31,8 @@
     "@typescript-eslint/parser": "^6.17.0",
     "eslint": "^8.56.0",
     "fast-check": "^4.5.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "typescript": "^5.3.3",
     "vitest": "^1.1.0",
     "wrangler": "^4.75.0"
