@@ -101,7 +101,7 @@ wrangler d1 create domain_renewal_db_dev
 wrangler d1 execute domain_renewal_db_dev --file=schema.sql
 
 # 创建本地 KV
-wrangler kv:namespace create "KV" --preview
+wrangler kv namespace create KV --preview
 ```
 
 #### 启动开发服务器
@@ -313,6 +313,10 @@ wrangler d1 execute domain_renewal_db --remote --file=migrations/0005_ai_import_
 - `PUT /api/domains/:id`
 - `POST /api/domains/:id/renew`
 - `DELETE /api/domains/:id`
+- `POST /api/domains/ai-parse`
+- `GET /api/domains/ai-history`
+- `POST /api/domains/ai-history/:id/retry`
+- `POST /api/domains/ai-history/:id/mark-imported`
 
 #### 管理员
 - `GET /api/admin/users`
@@ -422,6 +426,7 @@ For upgrading an older database:
 wrangler d1 execute domain_renewal_db --remote --file=migrations/0002_email_send_logs.sql
 wrangler d1 execute domain_renewal_db --remote --file=migrations/0003_domain_status_workflow.sql
 wrangler d1 execute domain_renewal_db --remote --file=migrations/0004_domain_workflow_fields.sql
+wrangler d1 execute domain_renewal_db --remote --file=migrations/0005_ai_import_history.sql
 ```
 
 ### 📄 License

@@ -309,29 +309,7 @@ npx wrangler d1 execute domain_renewal_db --remote --file=migrations/0005_ai_imp
 - `0004_domain_workflow_fields.sql`：负责人与处理时间字段
 - `0005_ai_import_history.sql`：AI 导入历史、失败重试、导入状态跟踪
 
-### 本次已执行的生产迁移
-
-2026-04-22 我已在远程数据库 `domain_renewal_db` 上执行：
-
-```bash
-npx wrangler d1 execute domain_renewal_db --remote --file=migrations/0005_ai_import_history.sql
-```
-
-执行结果为成功，Wrangler 返回：
-
-- `Processed 4 queries`
-- `success: true`
-- `changed_db: true`
-
-说明：
-
-- 后续我尝试做只读校验时，Cloudflare API 返回了两次临时 `fetch failed`
-- 这属于网络/控制面连通性问题，不是 SQL 执行失败
-- 迁移命令本身已经明确成功提交
-
 ### 建议的升级后校验
-
-网络正常时，可执行：
 
 ```bash
 npx wrangler d1 execute domain_renewal_db --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='ai_import_history';"
