@@ -6,6 +6,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, type AiImportDraft, type AiImportHistoryItem, type DomainPayload } from '../api/client';
+import { EmptyStatePanel, type EmptyStateVariant } from '../components/empty-state';
 import { BrandLogo } from '../components/logo';
 import { useAuth } from '../contexts/useAuth';
 
@@ -604,9 +605,15 @@ export function Dashboard() {
             <p className="mt-4 text-sm font-medium text-gray-600">加载中...</p>
           </div>
         ) : domains.length === 0 ? (
-          <EmptyState title="还没有域名" description="先添加第一个域名，系统才能开始帮你追踪续费和提醒。" />
+          <EmptyState
+            title="还没有域名"
+            description="先添加第一个域名，系统才能开始帮你追踪续费和提醒。"
+            variant="domains"
+            actionLabel="添加域名"
+            onAction={() => setShowAddModal(true)}
+          />
         ) : filteredDomains.length === 0 ? (
-          <EmptyState title="没有匹配结果" description="换一个关键词，或者清除筛选条件后再试。" actionLabel="清除筛选" onAction={clearFilters} />
+          <EmptyState title="没有匹配结果" description="换一个关键词，或者清除筛选条件后再试。" variant="search" actionLabel="清除筛选" onAction={clearFilters} />
         ) : viewMode === 'list' ? (
           <div className="space-y-4 sm:space-y-5">
             {filteredDomains.map((domain) => (
@@ -744,33 +751,25 @@ function FilterSelect({
 function EmptyState({
   title,
   description,
+  variant = 'domains',
   actionLabel,
   onAction,
 }: {
   title: string;
   description: string;
+  variant?: EmptyStateVariant;
   actionLabel?: string;
   onAction?: () => void;
 }) {
   return (
-    <div className="glass-card rounded-2xl p-10 text-center shadow-lg sm:p-16">
-      <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-indigo-100 to-purple-100">
-        <svg className="h-10 w-10 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-        </svg>
-      </div>
-      <h3 className="text-xl font-bold text-gray-900">{title}</h3>
-      <p className="mx-auto mt-3 max-w-xl text-sm text-gray-600">{description}</p>
-      {actionLabel && onAction && (
-        <button
-          type="button"
-          onClick={onAction}
-          className="mt-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-indigo-700 hover:to-purple-700"
-        >
-          {actionLabel}
-        </button>
-      )}
-    </div>
+    <EmptyStatePanel
+      title={title}
+      description={description}
+      variant={variant}
+      actionLabel={actionLabel}
+      onAction={onAction}
+      className="glass-card"
+    />
   );
 }
 
@@ -1322,7 +1321,13 @@ mydomain.net,https://registrar.com/renew,2023-06-15,2,60,admin@mydomain.net,5`;
           {loadingHistory ? (
             <div className="text-sm text-gray-500">历史加载中...</div>
           ) : historyItems.length === 0 ? (
-            <div className="text-sm text-gray-500">还没有 AI 识别历史。</div>
+            <EmptyStatePanel
+              title="还没有 AI 识别历史"
+              description="完成一次文字或图片识别后，摘要和草稿会出现在这里，方便快速回看和重试。"
+              variant="history"
+              compact
+              className="border-gray-200 bg-gray-50/70 shadow-none dark:border-gray-700 dark:bg-gray-800/70"
+            />
           ) : (
             <div className="space-y-3">
               {historyItems.map((item) => (

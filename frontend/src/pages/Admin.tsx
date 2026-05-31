@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
+import { EmptyStatePanel } from '../components/empty-state';
 import { BrandLogo } from '../components/logo';
 
 interface User {
@@ -540,6 +541,17 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
         <div className="inline-block animate-spin rounded-full h-10 w-10 sm:h-12 sm:h-12 border-4 border-indigo-200 border-t-indigo-600"></div>
         <p className="mt-4 text-sm sm:text-base text-gray-600 font-medium">加载中...</p>
       </div>
+    );
+  }
+
+  if (users.length === 0) {
+    return (
+      <EmptyStatePanel
+        title="暂无用户"
+        description="当新用户完成注册后，账号状态、域名数量和管理操作会显示在这里。"
+        variant="users"
+        className="border-gray-200 bg-white/70 shadow-none"
+      />
     );
   }
 
@@ -1154,7 +1166,13 @@ function RemindersTab({
             <p className="mt-4 text-sm text-gray-600">加载中...</p>
           </div>
         ) : emailLogs.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-600">暂无发信记录。</div>
+          <EmptyStatePanel
+            title="暂无发信记录"
+            description="验证邮件和域名提醒发出后，会在这里显示最近 100 条投递结果。"
+            variant="mail"
+            compact
+            className="mt-4 border-gray-200 bg-slate-50/70 shadow-none"
+          />
         ) : (
           <div className="mt-4 space-y-3">
             {emailLogs.map((log) => (
@@ -1220,15 +1238,12 @@ function LogsTab({ logs, loading }: LogsTabProps) {
   return (
     <div className="space-y-3 sm:space-y-4">
       {logs.length === 0 ? (
-        <div className="text-center py-12 sm:py-16">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-            <svg className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">暂无操作日志</h3>
-          <p className="text-sm sm:text-base text-gray-600">管理员操作记录将显示在这里</p>
-        </div>
+        <EmptyStatePanel
+          title="暂无操作日志"
+          description="管理员操作记录会按时间显示在这里，方便后续追踪配置与账号变更。"
+          variant="logs"
+          className="border-gray-200 bg-white/70 shadow-none"
+        />
       ) : (
         logs.map((log) => (
           <div key={log.id} className="bg-white/50 backdrop-blur-sm border border-gray-200/50 rounded-xl p-4 sm:p-5 hover:bg-indigo-50/30 hover:border-indigo-200/50 transition-all duration-200 shadow-sm hover:shadow-md">
