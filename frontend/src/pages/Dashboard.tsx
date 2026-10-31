@@ -20,6 +20,7 @@ interface Domain {
   usage_period_years: number;
   expiry_date: number;
   reminder_days_offset: number;
+  reminder_days_schedule?: string | null;
   reminder_start_date: number;
   reminder_email: string;
   reminder_count: number;
@@ -29,6 +30,89 @@ interface Domain {
   owner?: string | null;
   processed_at?: number | null;
   last_renewed_at?: number | null;
+}
+
+const PRESET_REMINDER_DAYS = [180, 90, 60, 30, 15, 7, 3, 1];
+
+function normalizeScheduleDays(items: unknown[], fallbackOffset?: number): number[] {
+  const valid = Array.from(
+    new Set(
+      items
+        .map((item) => (typeof item === 'number' ? Math.floor(item) : parseInt(String(item).trim(), 10)))
+        .filter((num) => Number.isFinite(num) && num >= 1 && num <= 365)
+    )
+  ).sort((a, b) => b - a);
+
+  if (valid.length > 0) {
+    return valid.slice(0, 30);
+  }
+
+  if (typeof fallbackOffset === 'number' && Number.isFinite(fallbackOffset) && fallbackOffset >= 1 && fallbackOffset <= 365) {
+    return [Math.floor(fallbackOffset)];
+  }
+
+  return [];
+}
+
+function parseDomainSchedule(domain: Pick<Domain, 'reminder_days_schedule' | 'reminder_days_offset'>): number[] {
+  if (domain.reminder_days_schedule) {
+    try {
+      const parsed = JSON.parse(domain.reminder_days_schedule);
+      if (Array.isArray(parsed)) {
+        const normalized = normalizeScheduleDays(parsed, domain.reminder_days_offset);
+        if (normalized.length > 0) {
+          return normalized;
+        }
+      }
+    } catch {
+      const split = domain.reminder_days_schedule.split(/[,\s，、]+/);
+      const normalized = normalizeScheduleDays(split, domain.reminder_days_offset);
+      if (normalized.length > 0) {
+        return normalized;
+      }
+    }
+  }
+
+  return normalizeScheduleDays([domain.reminder_days_offset], 30);
+}
+
+function formatIsoDateInput(timestamp: number): string {
+  return new Date(timestamp * 1000).toISOString().split('T')[0];
+}
+
+function addYearsToDateString(dateStr: string, years: number): string {
+  if (!dateStr || !Number.isFinite(years)) {
+    return '';
+  }
+  const date = new Date(`${dateStr}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  date.setUTCFullYear(date.getUTCFullYear() + years);
+  return date.toISOString().split('T')[0];
+}
+
+function formatOffsetTriggerDate(expiryDateStr: string, offsetDays: number): string {
+  if (!expiryDateStr || !Number.isFinite(offsetDays)) {
+    return '';
+  }
+  const date = new Date(`${expiryDateStr}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  date.setUTCDate(date.getUTCDate() - offsetDays);
+  return date.toLocaleDateString('zh-CN');
+}
+
+function getDaysUntilDateString(expiryDateStr: string): number | null {
+  if (!expiryDateStr) {
+    return null;
+  }
+  const date = new Date(`${expiryDateStr}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
 interface DomainFilters {
@@ -146,7 +230,9 @@ interface DomainCardProps {
 
 function DomainCard({ domain, onRenew, onHandle, onStatusChange, onEdit, onDelete }: DomainCardProps) {
   const daysLeft = getDaysUntilExpiry(domain.expiry_date);
-  const progress = Math.min(100, Math.round((domain.reminders_sent / domain.reminder_count) * 100));
+  const progress = Math.min(100, Math.round((domain.reminders_sent / Math.max(1, domain.reminder_count)) * 100));
+  const schedule = parseDomainSchedule(domain);
+  const scheduleSummary = `提前 ${schedule.join(' / ')} 天`;
 
   return (
     <div className="glass-card rounded-2xl border border-white/40 p-3 shadow-lg sm:p-4 lg:p-6">
@@ -164,7 +250,7 @@ function DomainCard({ domain, onRenew, onHandle, onStatusChange, onEdit, onDelet
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
           <InfoItem label="到期日期" value={formatDate(domain.expiry_date)} />
-          <InfoItem label="提醒开始" value={formatDate(domain.reminder_start_date)} />
+          <InfoItem label="提醒节点 / 下次提醒" value={`${scheduleSummary}（${formatDate(domain.reminder_start_date)}）`} />
           <InfoItem label="提醒邮箱" value={domain.reminder_email} breakAll />
           <InfoItem label="提醒进度" value={`${domain.reminders_sent}/${domain.reminder_count}`} />
         </div>
@@ -865,23 +951,192 @@ function EmptyState({
   );
 }
 
+interface ReminderScheduleEditorProps {
+  schedule: number[];
+  onChange: (nextSchedule: number[]) => void;
+  expiryDate?: string;
+}
+
+function ReminderScheduleEditor({ schedule, onChange, expiryDate }: ReminderScheduleEditorProps) {
+  const [customInput, setCustomInput] = useState('');
+  const [inputHint, setInputHint] = useState('');
+
+  const daysUntilExpiry = expiryDate ? getDaysUntilDateString(expiryDate) : null;
+
+  const toggleDay = (day: number) => {
+    setInputHint('');
+    if (schedule.includes(day)) {
+      if (schedule.length <= 1) {
+        setInputHint('至少需要保留 1 个提醒时间节点。');
+        return;
+      }
+      onChange(schedule.filter((item) => item !== day));
+    } else {
+      onChange(normalizeScheduleDays([...schedule, day]));
+    }
+  };
+
+  const removeDay = (day: number) => {
+    setInputHint('');
+    if (schedule.length <= 1) {
+      setInputHint('至少需要保留 1 个提醒时间节点。');
+      return;
+    }
+    onChange(schedule.filter((item) => item !== day));
+  };
+
+  const handleAddCustomDays = () => {
+    setInputHint('');
+    if (!customInput.trim()) {
+      return;
+    }
+
+    const parts = customInput.split(/[,\s，、]+/).filter(Boolean);
+    const parsed = normalizeScheduleDays(parts);
+    if (parsed.length === 0) {
+      setInputHint('请输入 1 到 365 之间的整数天数（可输入多个，如 90, 60, 15）。');
+      return;
+    }
+
+    onChange(normalizeScheduleDays([...schedule, ...parsed]));
+    setCustomInput('');
+  };
+
+  return (
+    <div className="rounded-2xl border border-indigo-200/80 bg-indigo-50/40 p-3.5 dark:border-indigo-800/60 dark:bg-indigo-950/20 sm:p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">多节点提醒设置（提前 N 天）</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            可自由添加或移除多个提前提醒节点，到对应天数各发送一次提醒
+          </div>
+        </div>
+        <span className="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+          提醒次数：{schedule.length} 次（自动计算）
+        </span>
+      </div>
+
+      <div className="mb-3">
+        <div className="mb-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">当前已启用节点（点击 × 可移除）：</div>
+        <div className="flex flex-wrap gap-2">
+          {schedule.map((day, idx) => {
+            const triggerDateLabel = expiryDate ? formatOffsetTriggerDate(expiryDate, day) : '';
+            const isPastNode = daysUntilExpiry !== null && day > daysUntilExpiry;
+            return (
+              <span
+                key={day}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-sm transition-all ${
+                  isPastNode
+                    ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                    : 'border-indigo-200 bg-white text-indigo-700 dark:border-indigo-700 dark:bg-gray-800 dark:text-indigo-300'
+                }`}
+              >
+                <span>
+                  第{idx + 1}次：提前 {day} 天
+                  {triggerDateLabel ? ` (${triggerDateLabel})` : ''}
+                  {isPastNode ? ' [已过节点]' : ''}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeDay(day)}
+                  className="ml-0.5 rounded-full p-0.5 text-gray-400 hover:bg-gray-200/70 hover:text-red-600 dark:hover:bg-gray-700"
+                  title={`移除提前 ${day} 天节点`}
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <div className="mb-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">快捷点选常用节点：</div>
+        <div className="flex flex-wrap gap-1.5">
+          {PRESET_REMINDER_DAYS.map((preset) => {
+            const active = schedule.includes(preset);
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => toggleDay(preset)}
+                className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all ${
+                  active
+                    ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
+                    : 'border border-gray-300 bg-white/80 text-gray-700 hover:bg-indigo-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                }`}
+              >
+                {active ? `✓ ${preset}天` : `+ ${preset}天`}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          type="text"
+          value={customInput}
+          onChange={(event) => setCustomInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              handleAddCustomDays();
+            }
+          }}
+          placeholder="输入自定义提前天数，支持逗号分隔多个（例如：90, 60, 15）"
+          className="flex-1 rounded-xl border border-gray-300 bg-white/80 px-3.5 py-2 text-xs focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 sm:text-sm"
+        />
+        <button
+          type="button"
+          onClick={handleAddCustomDays}
+          className="rounded-xl border border-indigo-600 bg-white px-4 py-2 text-xs font-semibold text-indigo-700 transition-all hover:bg-indigo-50 dark:border-indigo-500 dark:bg-gray-800 dark:text-indigo-300 sm:text-sm"
+        >
+          添加节点
+        </button>
+      </div>
+
+      {inputHint && <div className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">{inputHint}</div>}
+      {daysUntilExpiry !== null && schedule.some((d) => d > daysUntilExpiry) && (
+        <div className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+          提示：当前距离到期剩余 {daysUntilExpiry} 天，大于 {daysUntilExpiry} 天的节点日期已在今天之前（可点击节点右侧 × 移除不需要的节点）。
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface AddDomainModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
 
 function AddDomainModal({ onClose, onSuccess }: AddDomainModalProps) {
+  const [schedule, setSchedule] = useState<number[]>([60, 30, 15]);
   const [formData, setFormData] = useState<DomainFormData>({
     domainAddress: '',
     renewalUrl: '',
     registrationDate: '',
     usagePeriodYears: 1,
-    reminderDaysOffset: 30,
+    reminderDaysOffset: 60,
+    reminderDaysSchedule: [60, 30, 15],
     reminderEmail: '',
     reminderCount: 3,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const expiryDatePreview = addYearsToDateString(formData.registrationDate, formData.usagePeriodYears);
+
+  const handleScheduleChange = (nextSchedule: number[]) => {
+    setSchedule(nextSchedule);
+    setFormData((prev) => ({
+      ...prev,
+      reminderDaysSchedule: nextSchedule,
+      reminderDaysOffset: nextSchedule[0] ?? 30,
+      reminderCount: nextSchedule.length,
+    }));
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -889,7 +1144,12 @@ function AddDomainModal({ onClose, onSuccess }: AddDomainModalProps) {
     setError('');
 
     try {
-      const response = await apiClient.addDomain(formData);
+      const response = await apiClient.addDomain({
+        ...formData,
+        reminderDaysSchedule: schedule,
+        reminderDaysOffset: schedule[0] ?? formData.reminderDaysOffset,
+        reminderCount: schedule.length,
+      });
       if (response.success) {
         onSuccess();
         onClose();
@@ -909,14 +1169,22 @@ function AddDomainModal({ onClose, onSuccess }: AddDomainModalProps) {
         <FormError error={error} />
         <TextField label="域名地址" value={formData.domainAddress} onChange={(value) => setFormData({ ...formData, domainAddress: value })} placeholder="example.com" />
         <TextField label="续费网址" type="url" value={formData.renewalUrl} onChange={(value) => setFormData({ ...formData, renewalUrl: value })} placeholder="https://example.com/renew" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <TextField label="注册日期" type="date" value={formData.registrationDate} onChange={(value) => setFormData({ ...formData, registrationDate: value })} />
-          <NumberField label="使用周期（年）" value={formData.usagePeriodYears} onChange={(value) => setFormData({ ...formData, usagePeriodYears: value })} min={1} max={10} />
+          <NumberField label="使用周期（年）" value={formData.usagePeriodYears} onChange={(value) => setFormData({ ...formData, usagePeriodYears: value })} min={1} max={100} />
+          <TextField
+            label="到期日期（自动联动）"
+            type="date"
+            value={expiryDatePreview}
+            onChange={(nextExpiry) => {
+              const regDate = addYearsToDateString(nextExpiry, -formData.usagePeriodYears);
+              if (regDate) {
+                setFormData({ ...formData, registrationDate: regDate });
+              }
+            }}
+          />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <NumberField label="提前提醒天数" value={formData.reminderDaysOffset} onChange={(value) => setFormData({ ...formData, reminderDaysOffset: value })} min={1} max={365} />
-          <NumberField label="提醒次数" value={formData.reminderCount} onChange={(value) => setFormData({ ...formData, reminderCount: value })} min={1} max={30} />
-        </div>
+        <ReminderScheduleEditor schedule={schedule} onChange={handleScheduleChange} expiryDate={expiryDatePreview} />
         <TextField label="提醒邮箱" type="email" value={formData.reminderEmail} onChange={(value) => setFormData({ ...formData, reminderEmail: value })} placeholder="you@example.com" />
         <ModalActions onClose={onClose} loading={loading} submitLabel="保存并创建" />
       </form>
@@ -1705,28 +1973,84 @@ interface EditDomainModalProps {
 }
 
 function EditDomainModal({ domain, onClose, onSuccess }: EditDomainModalProps) {
+  const initialSchedule = parseDomainSchedule(domain);
+  const initialRegDate = formatIsoDateInput(domain.registration_date);
+  const initialExpiryDate = formatIsoDateInput(domain.expiry_date);
+
+  const [schedule, setSchedule] = useState<number[]>(initialSchedule);
+  const [resetRemindersSent, setResetRemindersSent] = useState<boolean>(domain.reminders_sent > 0);
   const [formData, setFormData] = useState({
+    domainAddress: domain.domain_address,
     renewalUrl: domain.renewal_url,
-    reminderStartDate: new Date(domain.reminder_start_date * 1000).toISOString().split('T')[0],
-    reminderCount: domain.reminder_count,
+    reminderEmail: domain.reminder_email,
+    registrationDate: initialRegDate,
+    usagePeriodYears: domain.usage_period_years,
+    expiryDate: initialExpiryDate,
     status: domain.status,
     statusNote: domain.status_note || '',
     owner: domain.owner || '',
-    processedAt: domain.processed_at ? new Date(domain.processed_at * 1000).toISOString().split('T')[0] : '',
+    processedAt: domain.processed_at ? formatIsoDateInput(domain.processed_at) : '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const handleRegistrationChange = (nextRegDate: string) => {
+    const nextExpiry = addYearsToDateString(nextRegDate, formData.usagePeriodYears);
+    setFormData((prev) => ({
+      ...prev,
+      registrationDate: nextRegDate,
+      expiryDate: nextExpiry || prev.expiryDate,
+    }));
+    setResetRemindersSent(true);
+  };
+
+  const handleUsagePeriodChange = (nextYears: number) => {
+    const safeYears = Math.max(1, Math.min(100, nextYears || 1));
+    const nextExpiry = addYearsToDateString(formData.registrationDate, safeYears);
+    setFormData((prev) => ({
+      ...prev,
+      usagePeriodYears: safeYears,
+      expiryDate: nextExpiry || prev.expiryDate,
+    }));
+    setResetRemindersSent(true);
+  };
+
+  const handleExpiryDateChange = (nextExpiry: string) => {
+    const derivedRegDate = addYearsToDateString(nextExpiry, -formData.usagePeriodYears);
+    setFormData((prev) => ({
+      ...prev,
+      expiryDate: nextExpiry,
+      registrationDate: derivedRegDate || prev.registrationDate,
+    }));
+    setResetRemindersSent(true);
+  };
+
+  const handleScheduleChange = (nextSchedule: number[]) => {
+    setSchedule(nextSchedule);
+    setResetRemindersSent(true);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (schedule.length === 0) {
+      setError('请至少设置 1 个提前提醒天数节点。');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
       const response = await apiClient.updateDomain(domain.id, {
-        renewalUrl: formData.renewalUrl,
-        reminderStartDate: Math.floor(new Date(formData.reminderStartDate).getTime() / 1000),
-        reminderCount: formData.reminderCount,
+        domainAddress: formData.domainAddress.trim(),
+        renewalUrl: formData.renewalUrl.trim(),
+        reminderEmail: formData.reminderEmail.trim(),
+        registrationDate: formData.registrationDate,
+        usagePeriodYears: formData.usagePeriodYears,
+        reminderDaysSchedule: schedule,
+        reminderDaysOffset: schedule[0],
+        reminderCount: schedule.length,
+        resetRemindersSent,
         status: formData.status,
         statusNote: formData.statusNote.trim() || null,
         owner: formData.owner.trim() || null,
@@ -1746,16 +2070,49 @@ function EditDomainModal({ domain, onClose, onSuccess }: EditDomainModalProps) {
     }
   };
 
+  const daysUntilExpiry = getDaysUntilDateString(formData.expiryDate);
+
   return (
     <ModalShell title="编辑域名" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <FormError error={error} />
-        <TextField label="域名地址" value={domain.domain_address} onChange={() => undefined} disabled />
-        <TextField label="续费网址" type="url" value={formData.renewalUrl} onChange={(value) => setFormData({ ...formData, renewalUrl: value })} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <TextField label="提醒开始日期" type="date" value={formData.reminderStartDate} onChange={(value) => setFormData({ ...formData, reminderStartDate: value })} />
-          <NumberField label="提醒次数" value={formData.reminderCount} onChange={(value) => setFormData({ ...formData, reminderCount: value })} min={1} max={30} />
+          <TextField label="域名地址" value={formData.domainAddress} onChange={(value) => setFormData({ ...formData, domainAddress: value })} />
+          <TextField label="提醒邮箱" type="email" value={formData.reminderEmail} onChange={(value) => setFormData({ ...formData, reminderEmail: value })} />
         </div>
+        <TextField label="续费网址" type="url" value={formData.renewalUrl} onChange={(value) => setFormData({ ...formData, renewalUrl: value })} />
+
+        <div className="rounded-2xl border border-gray-200/80 bg-white/50 p-3.5 dark:border-gray-700/80 dark:bg-gray-800/40 sm:p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">注册与到期时间</span>
+            {daysUntilExpiry !== null && (
+              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                距离到期剩余 {daysUntilExpiry} 天
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <TextField label="注册日期" type="date" value={formData.registrationDate} onChange={handleRegistrationChange} />
+            <NumberField label="使用周期（年）" value={formData.usagePeriodYears} onChange={handleUsagePeriodChange} min={1} max={100} />
+            <TextField label="到期日期（可联动修改）" type="date" value={formData.expiryDate} onChange={handleExpiryDateChange} />
+          </div>
+        </div>
+
+        <ReminderScheduleEditor schedule={schedule} onChange={handleScheduleChange} expiryDate={formData.expiryDate} />
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-white/70 p-3 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-800/60 dark:text-gray-300 sm:text-sm">
+          <input
+            type="checkbox"
+            checked={resetRemindersSent}
+            onChange={(event) => setResetRemindersSent(event.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <span>
+            <strong className="font-semibold text-gray-900 dark:text-gray-100">重置已发送提醒进度</strong>
+            （当前已发送 {domain.reminders_sent}/{domain.reminder_count} 次，勾选后重置为 0/{schedule.length} 次，确保新设置的提醒时间节点正常触发邮件）
+          </span>
+        </label>
+
         <FilterSelect
           label="域名状态"
           value={formData.status}
@@ -1932,8 +2289,18 @@ function NumberField({
       <input
         id={id}
         type="number"
-        value={value}
-        onChange={(event) => onChange(parseInt(event.target.value, 10))}
+        value={Number.isFinite(value) ? value : ''}
+        onChange={(event) => {
+          const raw = event.target.value;
+          if (raw === '') {
+            onChange(min);
+            return;
+          }
+          const parsed = parseInt(raw, 10);
+          if (Number.isFinite(parsed)) {
+            onChange(Math.max(min, Math.min(max, parsed)));
+          }
+        }}
         min={min}
         max={max}
         className="w-full rounded-xl border border-gray-300 bg-white/70 px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800/70 dark:text-gray-100"

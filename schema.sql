@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS domains (
   usage_period_years INTEGER NOT NULL,
   expiry_date INTEGER NOT NULL,
   reminder_days_offset INTEGER NOT NULL,
+  reminder_days_schedule TEXT,
   reminder_start_date INTEGER NOT NULL,
   reminder_email TEXT NOT NULL,
   reminder_count INTEGER NOT NULL,

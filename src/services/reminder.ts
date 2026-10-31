@@ -4,7 +4,8 @@
  */
 
 import { Domain, ApiResponse, EmailTriggerSource } from '../types';
-import { getTodayUTC, dateToTimestamp } from '../utils/date';
+import { getTodayUTC, dateToTimestamp, timestampToDate, calculateReminderDate } from '../utils/date';
+import { normalizeReminderSchedule } from '../utils/validation';
 import { EmailService } from './email';
 import { AdminService } from './admin';
 
@@ -149,7 +150,7 @@ export class ReminderService {
 
       // Manual test runs should not consume the domain's scheduled reminder quota.
       if (source === 'cron') {
-        await this.incrementReminderSent(domain.id);
+        await this.incrementReminderSent(domain);
       }
 
       await adminService.recordEmailSend({
@@ -185,17 +186,26 @@ export class ReminderService {
   }
 
   /**
-   * Increment reminder sent count for a domain
+   * Increment reminder sent count for a domain and advance reminder_start_date to the next scheduled node
    */
-  private async incrementReminderSent(domainId: string): Promise<void> {
+  private async incrementReminderSent(domain: Domain): Promise<void> {
     try {
       const now = Math.floor(Date.now() / 1000);
-      
+      const nextSent = (domain.reminders_sent || 0) + 1;
+      const schedule = normalizeReminderSchedule(domain.reminder_days_schedule, domain.reminder_days_offset);
+
+      let nextReminderStartDate = domain.reminder_start_date;
+      if (schedule.length > 1) {
+        const nextNodeIndex = Math.min(nextSent, schedule.length - 1);
+        const expiryDate = timestampToDate(domain.expiry_date);
+        nextReminderStartDate = dateToTimestamp(calculateReminderDate(expiryDate, schedule[nextNodeIndex]));
+      }
+
       await this.db
         .prepare(
-          'UPDATE domains SET reminders_sent = reminders_sent + 1, updated_at = ? WHERE id = ?'
+          'UPDATE domains SET reminders_sent = ?, reminder_start_date = ?, updated_at = ? WHERE id = ?'
         )
-        .bind(now, domainId)
+        .bind(nextSent, nextReminderStartDate, now, domain.id)
         .run();
     } catch (error) {
       console.error('Increment reminder sent error:', error);

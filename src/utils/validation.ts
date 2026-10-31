@@ -36,6 +36,52 @@ export function isValidUrl(url: string): boolean {
 }
 
 /**
+ * Normalizes and sorts reminder days schedule (descending, unique integers between 1 and 365)
+ */
+export function normalizeReminderSchedule(
+  schedule: unknown,
+  fallbackOffset?: number
+): number[] {
+  const rawItems: unknown[] = Array.isArray(schedule)
+    ? schedule
+    : typeof schedule === 'string' && schedule.trim()
+      ? schedule.trim().startsWith('[')
+        ? (() => {
+            try {
+              const parsed = JSON.parse(schedule);
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return schedule.split(/[,\s，、]+/);
+            }
+          })()
+        : schedule.split(/[,\s，、]+/)
+      : [];
+
+  const validDays = Array.from(
+    new Set(
+      rawItems
+        .map((item) => (typeof item === 'number' ? Math.floor(item) : parseInt(String(item).trim(), 10)))
+        .filter((num) => Number.isFinite(num) && num >= 1 && num <= 365)
+    )
+  ).sort((a, b) => b - a);
+
+  if (validDays.length > 0) {
+    return validDays.slice(0, 30);
+  }
+
+  if (
+    typeof fallbackOffset === 'number' &&
+    Number.isFinite(fallbackOffset) &&
+    fallbackOffset >= 1 &&
+    fallbackOffset <= 365
+  ) {
+    return [Math.floor(fallbackOffset)];
+  }
+
+  return [];
+}
+
+/**
  * Validates domain input for creation/update
  */
 export function validateDomainInput(input: Partial<DomainInput>): {
@@ -52,7 +98,7 @@ export function validateDomainInput(input: Partial<DomainInput>): {
     errors.push('Invalid renewal URL');
   }
 
-  if (!input.registrationDate || !(input.registrationDate instanceof Date)) {
+  if (!input.registrationDate || !(input.registrationDate instanceof Date) || Number.isNaN(input.registrationDate.getTime())) {
     errors.push('Invalid registration date');
   }
 
@@ -60,7 +106,9 @@ export function validateDomainInput(input: Partial<DomainInput>): {
     errors.push('Usage period must be between 1 and 100 years');
   }
 
-  if (input.reminderDaysOffset === undefined || input.reminderDaysOffset < 1 || input.reminderDaysOffset > 365) {
+  const normalizedSchedule = normalizeReminderSchedule(input.reminderDaysSchedule, input.reminderDaysOffset);
+
+  if (normalizedSchedule.length === 0) {
     errors.push('Reminder days offset must be between 1 and 365');
   }
 
@@ -68,7 +116,12 @@ export function validateDomainInput(input: Partial<DomainInput>): {
     errors.push('Invalid reminder email');
   }
 
-  if (!input.reminderCount || input.reminderCount < 1 || input.reminderCount > 30) {
+  const effectiveReminderCount =
+    input.reminderDaysSchedule && normalizedSchedule.length > 0
+      ? normalizedSchedule.length
+      : input.reminderCount;
+
+  if (!effectiveReminderCount || effectiveReminderCount < 1 || effectiveReminderCount > 30) {
     errors.push('Reminder count must be between 1 and 30');
   }
 

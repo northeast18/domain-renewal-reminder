@@ -28,12 +28,12 @@ fallthrough = true
 [[d1_databases]]
 binding = "DB"
 database_name = "domain_renewal_db"
-database_id = "b80fa24a-841f-49da-84a5-cffddb1c5c77"
+database_id = "08e50b0c-cfd3-47d7-a1b2-19c3ad643184"
 
 # KV namespace bindings
 [[kv_namespaces]]
 binding = "KV"
-id = "279e769eecde4179bd64738c088e4b7e"
+id = "358dfba42fb347c8ae1400599422c6a7"
 
 # Cron trigger for daily reminder checks (runs at 00:00 UTC daily)
 [triggers]

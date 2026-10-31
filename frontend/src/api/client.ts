@@ -16,6 +16,7 @@ export type DomainPayload = {
   registrationDate: string;
   usagePeriodYears: number;
   reminderDaysOffset: number;
+  reminderDaysSchedule?: number[];
   reminderEmail: string;
   reminderCount: number;
 };

@@ -4,11 +4,28 @@
  */
 
 import { Domain, DomainInput, DomainFilters, ApiResponse, DomainStatus } from '../types';
-import { validateDomainInput, isValidDomainStatus } from '../utils/validation';
+import { validateDomainInput, isValidDomainStatus, normalizeReminderSchedule } from '../utils/validation';
 import { calculateExpiryDate, calculateReminderDate, dateToTimestamp, timestampToDate } from '../utils/date';
 
 export class DomainService {
+  private static initializedDbs = new WeakSet<object>();
+
   constructor(private db: D1Database) {}
+
+  private async ensureSchema(): Promise<void> {
+    if (!this.db || typeof (this.db as any).prepare !== 'function') {
+      return;
+    }
+    if (DomainService.initializedDbs.has(this.db as unknown as object)) {
+      return;
+    }
+    try {
+      await this.db.prepare('ALTER TABLE domains ADD COLUMN reminder_days_schedule TEXT').run();
+    } catch {
+      // Ignore error if column already exists
+    }
+    DomainService.initializedDbs.add(this.db as unknown as object);
+  }
 
   private normalizeOptionalText(value: unknown, maxLength: number): string | null {
     if (typeof value !== 'string') {
@@ -66,12 +83,24 @@ export class DomainService {
     };
 
     try {
+      await this.ensureSchema();
+
       // Prepare all statements
       const statements: D1PreparedStatement[] = [];
       const now = Math.floor(Date.now() / 1000);
 
       for (let i = 0; i < inputs.length; i++) {
-        const input = inputs[i];
+        const rawInput = inputs[i];
+        const schedule = normalizeReminderSchedule(rawInput.reminderDaysSchedule, rawInput.reminderDaysOffset);
+        const input: DomainInput = {
+          ...rawInput,
+          reminderDaysSchedule: schedule,
+          reminderDaysOffset: schedule[0] ?? rawInput.reminderDaysOffset,
+          reminderCount:
+            rawInput.reminderDaysSchedule && schedule.length > 0
+              ? schedule.length
+              : rawInput.reminderCount || schedule.length,
+        };
 
         // Validate input
         const validation = validateDomainInput(input);
@@ -96,9 +125,9 @@ export class DomainService {
             .prepare(
               `INSERT INTO domains (
                 id, user_id, domain_address, renewal_url, registration_date,
-                usage_period_years, expiry_date, reminder_days_offset, reminder_start_date,
-                reminder_email, reminder_count, reminders_sent, created_at, updated_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
+                usage_period_years, expiry_date, reminder_days_offset, reminder_days_schedule,
+                reminder_start_date, reminder_email, reminder_count, reminders_sent, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
             )
             .bind(
               domainId,
@@ -109,6 +138,7 @@ export class DomainService {
               input.usagePeriodYears,
               dateToTimestamp(expiryDate),
               input.reminderDaysOffset,
+              JSON.stringify(schedule),
               dateToTimestamp(reminderStartDate),
               input.reminderEmail,
               input.reminderCount,
@@ -144,8 +174,21 @@ export class DomainService {
   /**
    * Add a new domain record
    */
-  async addDomain(userId: string, input: DomainInput): Promise<ApiResponse<{ domainId: string }>> {
+  async addDomain(userId: string, rawInput: DomainInput): Promise<ApiResponse<{ domainId: string }>> {
     try {
+      await this.ensureSchema();
+
+      const schedule = normalizeReminderSchedule(rawInput.reminderDaysSchedule, rawInput.reminderDaysOffset);
+      const input: DomainInput = {
+        ...rawInput,
+        reminderDaysSchedule: schedule,
+        reminderDaysOffset: schedule[0] ?? rawInput.reminderDaysOffset,
+        reminderCount:
+          rawInput.reminderDaysSchedule && schedule.length > 0
+            ? schedule.length
+            : rawInput.reminderCount || schedule.length,
+      };
+
       // Validate input
       const validation = validateDomainInput(input);
       if (!validation.valid) {
@@ -171,9 +214,9 @@ export class DomainService {
         .prepare(
           `INSERT INTO domains (
             id, user_id, domain_address, renewal_url, registration_date,
-            usage_period_years, expiry_date, reminder_days_offset, reminder_start_date,
-            reminder_email, reminder_count, reminders_sent, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
+            usage_period_years, expiry_date, reminder_days_offset, reminder_days_schedule,
+            reminder_start_date, reminder_email, reminder_count, reminders_sent, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
         )
         .bind(
           domainId,
@@ -184,6 +227,7 @@ export class DomainService {
           input.usagePeriodYears,
           dateToTimestamp(expiryDate),
           input.reminderDaysOffset,
+          JSON.stringify(schedule),
           dateToTimestamp(reminderStartDate),
           input.reminderEmail,
           input.reminderCount,
@@ -216,6 +260,8 @@ export class DomainService {
     domainId: string,
     updates: Partial<DomainInput> & {
       reminderStartDate?: number | Date;
+      resetRemindersSent?: boolean;
+      remindersSent?: number;
       status?: DomainStatus;
       statusNote?: string | null;
       owner?: string | null;
@@ -223,6 +269,8 @@ export class DomainService {
     }
   ): Promise<ApiResponse> {
     try {
+      await this.ensureSchema();
+
       // Get existing domain
       const existing = await this.db
         .prepare('SELECT * FROM domains WHERE id = ? AND user_id = ?')
@@ -239,17 +287,62 @@ export class DomainService {
         };
       }
 
+      const existingSchedule = normalizeReminderSchedule(
+        existing.reminder_days_schedule,
+        existing.reminder_days_offset
+      );
+
+      const registrationDate = updates.registrationDate
+        ? updates.registrationDate
+        : new Date(existing.registration_date * 1000);
+      const usagePeriodYears = updates.usagePeriodYears ?? existing.usage_period_years;
+      const expiryDate = calculateExpiryDate(registrationDate, usagePeriodYears);
+
+      const manualReminderStartDate =
+        updates.reminderStartDate !== undefined
+          ? updates.reminderStartDate instanceof Date
+            ? updates.reminderStartDate
+            : new Date(updates.reminderStartDate * 1000)
+          : null;
+
+      let nextSchedule: number[];
+      if (updates.reminderDaysSchedule !== undefined) {
+        nextSchedule = normalizeReminderSchedule(updates.reminderDaysSchedule);
+      } else if (updates.reminderDaysOffset !== undefined) {
+        nextSchedule = normalizeReminderSchedule([updates.reminderDaysOffset]);
+      } else if (manualReminderStartDate) {
+        const manualOffset = this.calculateReminderDaysOffset(expiryDate, manualReminderStartDate);
+        nextSchedule = manualOffset >= 1 && manualOffset <= 365 ? [manualOffset] : [];
+      } else {
+        nextSchedule = existingSchedule;
+      }
+
+      if (nextSchedule.length === 0) {
+        return {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Reminder days offset must be between 1 and 365 days before expiry',
+          },
+        };
+      }
+
+      const reminderDaysOffset = nextSchedule[0];
+      const reminderCount =
+        updates.reminderDaysSchedule !== undefined
+          ? nextSchedule.length
+          : updates.reminderCount ?? existing.reminder_count;
+
       // Merge updates with existing data
-      const merged = {
+      const merged: DomainInput = {
         domainAddress: updates.domainAddress || existing.domain_address,
         renewalUrl: updates.renewalUrl || existing.renewal_url,
-        registrationDate: updates.registrationDate
-          ? updates.registrationDate
-          : new Date(existing.registration_date * 1000),
-        usagePeriodYears: updates.usagePeriodYears ?? existing.usage_period_years,
-        reminderDaysOffset: updates.reminderDaysOffset ?? existing.reminder_days_offset,
+        registrationDate,
+        usagePeriodYears,
+        reminderDaysOffset,
+        reminderDaysSchedule: nextSchedule,
         reminderEmail: updates.reminderEmail || existing.reminder_email,
-        reminderCount: updates.reminderCount ?? existing.reminder_count,
+        reminderCount,
       };
 
       // Validate merged data
@@ -265,30 +358,26 @@ export class DomainService {
         };
       }
 
-      // Recalculate expiry date first. Reminder date can either be derived from offset
-      // or explicitly overridden by the edit form.
-      const expiryDate = calculateExpiryDate(merged.registrationDate, merged.usagePeriodYears);
-      const manualReminderStartDate =
-        updates.reminderStartDate !== undefined
-          ? updates.reminderStartDate instanceof Date
-            ? updates.reminderStartDate
-            : new Date(updates.reminderStartDate * 1000)
-          : null;
+      const scheduleOrDatesChanged =
+        JSON.stringify(nextSchedule) !== JSON.stringify(existingSchedule) ||
+        reminderDaysOffset !== existing.reminder_days_offset ||
+        dateToTimestamp(expiryDate) !== existing.expiry_date ||
+        updates.reminderStartDate !== undefined;
 
-      const reminderStartDate = manualReminderStartDate || calculateReminderDate(expiryDate, merged.reminderDaysOffset);
-      const reminderDaysOffset = manualReminderStartDate
-        ? this.calculateReminderDaysOffset(expiryDate, reminderStartDate)
-        : merged.reminderDaysOffset;
-
-      if (reminderDaysOffset < 1 || reminderDaysOffset > 365) {
-        return {
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Reminder start date must be between 1 and 365 days before expiry',
-          },
-        };
+      let remindersSent: number;
+      if (updates.resetRemindersSent === true || (updates.resetRemindersSent === undefined && scheduleOrDatesChanged)) {
+        remindersSent = 0;
+      } else if (typeof updates.remindersSent === 'number' && Number.isFinite(updates.remindersSent)) {
+        remindersSent = Math.max(0, Math.min(reminderCount, Math.floor(updates.remindersSent)));
+      } else {
+        remindersSent = Math.min(existing.reminders_sent || 0, reminderCount);
       }
+
+      const activeNodeIndex = Math.min(remindersSent, nextSchedule.length - 1);
+      const reminderStartDate =
+        manualReminderStartDate && updates.reminderDaysSchedule === undefined && updates.reminderDaysOffset === undefined
+          ? manualReminderStartDate
+          : calculateReminderDate(expiryDate, nextSchedule[activeNodeIndex]);
 
       const nextStatus = updates.status ?? ((existing.status as DomainStatus | null) || 'active');
       if (!isValidDomainStatus(nextStatus)) {
@@ -321,9 +410,9 @@ export class DomainService {
           `UPDATE domains SET
             domain_address = ?, renewal_url = ?, registration_date = ?,
             usage_period_years = ?, expiry_date = ?, reminder_days_offset = ?,
-            reminder_start_date = ?, reminder_email = ?, reminder_count = ?,
-            status = ?, status_note = ?, owner = ?, processed_at = ?,
-            updated_at = ?
+            reminder_days_schedule = ?, reminder_start_date = ?, reminder_email = ?,
+            reminder_count = ?, reminders_sent = ?, status = ?, status_note = ?,
+            owner = ?, processed_at = ?, updated_at = ?
           WHERE id = ? AND user_id = ?`
         )
         .bind(
@@ -333,9 +422,11 @@ export class DomainService {
           merged.usagePeriodYears,
           dateToTimestamp(expiryDate),
           reminderDaysOffset,
+          JSON.stringify(nextSchedule),
           dateToTimestamp(reminderStartDate),
           merged.reminderEmail,
           merged.reminderCount,
+          remindersSent,
           nextStatus,
           statusNote,
           owner,
@@ -403,6 +494,8 @@ export class DomainService {
     domainId: string
   ): Promise<ApiResponse<{ previousExpiryDate: number; nextExpiryDate: number }>> {
     try {
+      await this.ensureSchema();
+
       const existing = await this.db
         .prepare('SELECT * FROM domains WHERE id = ? AND user_id = ?')
         .bind(domainId, userId)
@@ -418,10 +511,12 @@ export class DomainService {
         };
       }
 
+      const schedule = normalizeReminderSchedule(existing.reminder_days_schedule, existing.reminder_days_offset);
+      const firstOffset = schedule[0] ?? existing.reminder_days_offset;
       const previousExpiryDate = existing.expiry_date;
       const nextRegistrationDate = timestampToDate(existing.expiry_date);
       const nextExpiryDate = calculateExpiryDate(nextRegistrationDate, existing.usage_period_years);
-      const nextReminderStartDate = calculateReminderDate(nextExpiryDate, existing.reminder_days_offset);
+      const nextReminderStartDate = calculateReminderDate(nextExpiryDate, firstOffset);
       const now = Math.floor(Date.now() / 1000);
 
       await this.db
@@ -429,6 +524,7 @@ export class DomainService {
           `UPDATE domains SET
             registration_date = ?,
             expiry_date = ?,
+            reminder_days_offset = ?,
             reminder_start_date = ?,
             reminders_sent = 0,
             status = 'active',
@@ -441,6 +537,7 @@ export class DomainService {
         .bind(
           dateToTimestamp(nextRegistrationDate),
           dateToTimestamp(nextExpiryDate),
+          firstOffset,
           dateToTimestamp(nextReminderStartDate),
           now,
           now,
@@ -486,6 +583,7 @@ export class DomainService {
     totalPages: number;
   }>> {
     try {
+      await this.ensureSchema();
       let countQuery = 'SELECT COUNT(*) as count FROM domains WHERE user_id = ?';
       let query = 'SELECT * FROM domains WHERE user_id = ?';
       const params: any[] = [userId];

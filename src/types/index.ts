@@ -26,6 +26,7 @@ export type Domain = {
   usage_period_years: number;
   expiry_date: number;
   reminder_days_offset: number;
+  reminder_days_schedule?: string | null;
   reminder_start_date: number;
   reminder_email: string;
   reminder_count: number;
@@ -45,6 +46,7 @@ export type DomainInput = {
   registrationDate: Date;
   usagePeriodYears: number;
   reminderDaysOffset: number;
+  reminderDaysSchedule?: number[];
   reminderEmail: string;
   reminderCount: number;
 };
