@@ -441,7 +441,8 @@ export function Dashboard() {
     paused: 0,
     abandoned: 0,
   });
-  const pageSize = 20;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const pageSize = 100;
 
   const [filterRenewalUrl, setFilterRenewalUrl] = useState('');
   const [filterUsagePeriod, setFilterUsagePeriod] = useState<number | ''>('');
@@ -451,7 +452,11 @@ export function Dashboard() {
   const [viewMode, setViewMode] = useState<'list' | 'grouped'>('list');
 
   const loadDomains = useCallback(async () => {
-    setLoading(true);
+    if (domains.length === 0) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const filters: DomainFilters = {};
       if (filterRenewalUrl) filters.renewalUrl = filterRenewalUrl;
@@ -481,8 +486,9 @@ export function Dashboard() {
       });
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  }, [currentPage, filterReminderCount, filterRenewalUrl, filterStatus, filterUsagePeriod]);
+  }, [currentPage, filterReminderCount, filterRenewalUrl, filterStatus, filterUsagePeriod, domains.length]);
 
   useEffect(() => {
     void loadDomains();
@@ -835,7 +841,7 @@ export function Dashboard() {
           )}
         </div>
 
-        {loading ? (
+        {loading && domains.length === 0 ? (
           <div className="space-y-4 sm:space-y-5">
             {[1, 2, 3].map((i) => (
               <DomainCardSkeleton key={i} />
@@ -852,7 +858,7 @@ export function Dashboard() {
         ) : filteredDomains.length === 0 ? (
           <EmptyState title="没有匹配结果" description="换一个关键词，或者清除筛选条件后再试。" variant="search" actionLabel="清除筛选" onAction={clearFilters} />
         ) : viewMode === 'list' ? (
-          <div className="space-y-4 sm:space-y-5">
+          <div className={`space-y-4 sm:space-y-5 transition-opacity duration-150 ${isRefreshing ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
             {filteredDomains.map((domain) => (
               <DomainCard
                 key={domain.id}

@@ -8,23 +8,15 @@ import { validateDomainInput, isValidDomainStatus, normalizeReminderSchedule } f
 import { calculateExpiryDate, calculateReminderDate, dateToTimestamp, timestampToDate } from '../utils/date';
 
 export class DomainService {
-  private static initializedDbs = new WeakSet<object>();
+  private static schemaEnsured = false;
 
   constructor(private db: D1Database) {}
 
   private async ensureSchema(): Promise<void> {
-    if (!this.db || typeof (this.db as any).prepare !== 'function') {
+    if (DomainService.schemaEnsured) {
       return;
     }
-    if (DomainService.initializedDbs.has(this.db as unknown as object)) {
-      return;
-    }
-    try {
-      await this.db.prepare('ALTER TABLE domains ADD COLUMN reminder_days_schedule TEXT').run();
-    } catch {
-      // Ignore error if column already exists
-    }
-    DomainService.initializedDbs.add(this.db as unknown as object);
+    DomainService.schemaEnsured = true;
   }
 
   private normalizeOptionalText(value: unknown, maxLength: number): string | null {
@@ -624,38 +616,36 @@ export class DomainService {
         countParams.push(filters.status);
       }
 
-      // Get total count
-      const countResult = await this.db
-        .prepare(countQuery)
-        .bind(...countParams)
-        .first<{ count: number }>();
-
-      const total = countResult?.count || 0;
-      const totalPages = Math.ceil(total / pageSize);
-
-      // Get global status counts for this user (not affected by status filter)
-      const statsResult = await this.db
-        .prepare("SELECT COUNT(*) as total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status = 'handled' THEN 1 ELSE 0 END) as handled, SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) as paused, SUM(CASE WHEN status = 'abandoned' THEN 1 ELSE 0 END) as abandoned FROM domains WHERE user_id = ?")
-        .bind(userId)
-        .first<{
-          total: number;
-          active: number;
-          handled: number;
-          paused: number;
-          abandoned: number;
-        }>();
-
       // Get paginated results
       query += ' ORDER BY expiry_date ASC LIMIT ? OFFSET ?';
       const offset = (page - 1) * pageSize;
       params.push(pageSize, offset);
 
-      const result = await this.db.prepare(query).bind(...params).all();
+      // Execute count, global stats, and domains in a single batch
+      const [countBatch, statsBatch, domainsBatch] = await this.db.batch([
+        this.db.prepare(countQuery).bind(...countParams),
+        this.db.prepare(
+          "SELECT COUNT(*) as total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status = 'handled' THEN 1 ELSE 0 END) as handled, SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) as paused, SUM(CASE WHEN status = 'abandoned' THEN 1 ELSE 0 END) as abandoned FROM domains WHERE user_id = ?"
+        ).bind(userId),
+        this.db.prepare(query).bind(...params),
+      ]);
+
+      const countResult = countBatch.results?.[0] as { count: number } | undefined;
+      const total = countResult?.count || 0;
+      const totalPages = Math.ceil(total / pageSize);
+      const statsResult = statsBatch.results?.[0] as {
+        total: number;
+        active: number;
+        handled: number;
+        paused: number;
+        abandoned: number;
+      } | undefined;
+      const domainsResult = (domainsBatch.results || []) as Domain[];
 
       return {
         success: true,
         data: {
-          domains: result.results as Domain[],
+          domains: domainsResult,
           total,
           page,
           pageSize,
