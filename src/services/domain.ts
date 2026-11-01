@@ -581,6 +581,13 @@ export class DomainService {
     page: number;
     pageSize: number;
     totalPages: number;
+    stats?: {
+      total: number;
+      active: number;
+      handled: number;
+      paused: number;
+      abandoned: number;
+    };
   }>> {
     try {
       await this.ensureSchema();
@@ -626,6 +633,18 @@ export class DomainService {
       const total = countResult?.count || 0;
       const totalPages = Math.ceil(total / pageSize);
 
+      // Get global status counts for this user (not affected by status filter)
+      const statsResult = await this.db
+        .prepare("SELECT COUNT(*) as total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active, SUM(CASE WHEN status = 'handled' THEN 1 ELSE 0 END) as handled, SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) as paused, SUM(CASE WHEN status = 'abandoned' THEN 1 ELSE 0 END) as abandoned FROM domains WHERE user_id = ?")
+        .bind(userId)
+        .first<{
+          total: number;
+          active: number;
+          handled: number;
+          paused: number;
+          abandoned: number;
+        }>();
+
       // Get paginated results
       query += ' ORDER BY expiry_date ASC LIMIT ? OFFSET ?';
       const offset = (page - 1) * pageSize;
@@ -641,6 +660,13 @@ export class DomainService {
           page,
           pageSize,
           totalPages,
+          stats: {
+            total: statsResult?.total || 0,
+            active: statsResult?.active || 0,
+            handled: statsResult?.handled || 0,
+            paused: statsResult?.paused || 0,
+            abandoned: statsResult?.abandoned || 0,
+          },
         },
       };
     } catch (error) {
