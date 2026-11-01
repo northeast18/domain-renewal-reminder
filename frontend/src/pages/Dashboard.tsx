@@ -126,6 +126,13 @@ interface DomainsResponse {
   domains: Domain[];
   total: number;
   totalPages: number;
+  stats?: {
+    total: number;
+    active: number;
+    handled: number;
+    paused: number;
+    abandoned: number;
+  };
 }
 
 type DomainFormData = DomainPayload;
@@ -421,6 +428,19 @@ export function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalDomains, setTotalDomains] = useState(0);
+  const [stats, setStats] = useState<{
+    total: number;
+    active: number;
+    handled: number;
+    paused: number;
+    abandoned: number;
+  }>({
+    total: 0,
+    active: 0,
+    handled: 0,
+    paused: 0,
+    abandoned: 0,
+  });
   const pageSize = 20;
 
   const [filterRenewalUrl, setFilterRenewalUrl] = useState('');
@@ -445,6 +465,9 @@ export function Dashboard() {
         setDomains(data.domains || []);
         setTotalDomains(data.total || 0);
         setTotalPages(data.totalPages || 1);
+        if (data.stats) {
+          setStats(data.stats);
+        }
       } else {
         setBanner({
           tone: 'error',
@@ -627,11 +650,55 @@ export function Dashboard() {
           </>
         ) : (
           <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <StatCard label="域名总数" value={String(totalDomains)} />
-            <StatCard label="提醒中" value={String(activeCount)} accent="emerald" />
-            <StatCard label="已处理" value={String(handledCount)} accent="indigo" />
-            <StatCard label="已暂停" value={String(pausedCount)} accent="amber" />
-            <StatCard label="已放弃" value={String(abandonedCount)} accent="rose" />
+            <StatCard
+              label="域名总数"
+              value={String(stats.total || totalDomains)}
+              active={filterStatus === ''}
+              onClick={() => {
+                setCurrentPage(1);
+                setFilterStatus('');
+              }}
+            />
+            <StatCard
+              label="提醒中"
+              value={String(stats.total ? stats.active : activeCount)}
+              accent="emerald"
+              active={filterStatus === 'active'}
+              onClick={() => {
+                setCurrentPage(1);
+                setFilterStatus((prev) => (prev === 'active' ? '' : 'active'));
+              }}
+            />
+            <StatCard
+              label="已处理"
+              value={String(stats.total ? stats.handled : handledCount)}
+              accent="indigo"
+              active={filterStatus === 'handled'}
+              onClick={() => {
+                setCurrentPage(1);
+                setFilterStatus((prev) => (prev === 'handled' ? '' : 'handled'));
+              }}
+            />
+            <StatCard
+              label="已暂停"
+              value={String(stats.total ? stats.paused : pausedCount)}
+              accent="amber"
+              active={filterStatus === 'paused'}
+              onClick={() => {
+                setCurrentPage(1);
+                setFilterStatus((prev) => (prev === 'paused' ? '' : 'paused'));
+              }}
+            />
+            <StatCard
+              label="已放弃"
+              value={String(stats.total ? stats.abandoned : abandonedCount)}
+              accent="rose"
+              active={filterStatus === 'abandoned'}
+              onClick={() => {
+                setCurrentPage(1);
+                setFilterStatus((prev) => (prev === 'abandoned' ? '' : 'abandoned'));
+              }}
+            />
           </div>
         )}
 
@@ -742,7 +809,10 @@ export function Dashboard() {
             <FilterSelect
               label="域名状态"
               value={filterStatus}
-              onChange={(value) => setFilterStatus((value || '') as DomainStatus | '')}
+              onChange={(value) => {
+                setCurrentPage(1);
+                setFilterStatus((value || '') as DomainStatus | '');
+              }}
               options={[
                 { label: '全部', value: '' },
                 { label: '提醒中', value: 'active' },
@@ -875,7 +945,19 @@ function StatCardSkeleton() {
   );
 }
 
-function StatCard({ label, value, accent = 'indigo' }: { label: string; value: string; accent?: 'indigo' | 'emerald' | 'amber' | 'rose' }) {
+function StatCard({
+  label,
+  value,
+  accent = 'indigo',
+  active = false,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  accent?: 'indigo' | 'emerald' | 'amber' | 'rose';
+  active?: boolean;
+  onClick?: () => void;
+}) {
   const accentMap = {
     indigo: 'from-indigo-500 to-purple-600',
     emerald: 'from-emerald-500 to-teal-600',
@@ -883,16 +965,42 @@ function StatCard({ label, value, accent = 'indigo' }: { label: string; value: s
     rose: 'from-rose-500 to-red-600',
   };
 
+  const activeBorderMap = {
+    indigo: 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30',
+    emerald: 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30',
+    amber: 'ring-2 ring-amber-500 border-amber-500 bg-amber-50/50 dark:bg-amber-950/30',
+    rose: 'ring-2 ring-rose-500 border-rose-500 bg-rose-50/50 dark:bg-rose-950/30',
+  };
+
   return (
-    <div className="glass-card rounded-2xl p-4 shadow-lg sm:p-5">
-      <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white sm:h-12 sm:w-12 ${accentMap[accent]}`}>
-        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`glass-card group w-full text-left rounded-2xl p-4 shadow-lg sm:p-5 transition-all duration-200 cursor-pointer select-none hover:-translate-y-0.5 hover:shadow-xl focus:outline-none ${
+        active
+          ? `${activeBorderMap[accent]} shadow-md`
+          : 'border-transparent hover:border-gray-200 dark:hover:border-gray-700'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white sm:h-12 sm:w-12 shadow-sm transition-transform group-hover:scale-105 ${accentMap[accent]}`}>
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        {active && (
+          <span className="inline-flex items-center rounded-full bg-indigo-600/10 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-400/20 dark:text-indigo-300">
+            当前筛选
+          </span>
+        )}
       </div>
-      <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">{label}</div>
-      <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">{value}</div>
-    </div>
+      <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+        {label}
+      </div>
+      <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">
+        {value}
+      </div>
+    </button>
   );
 }
 
