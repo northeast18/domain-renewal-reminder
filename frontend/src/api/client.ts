@@ -2,7 +2,21 @@
  * API Client for Domain Renewal Reminder Service
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
+const getDefaultApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+    return envUrl.trim();
+  }
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.includes('jishu.cc.cd') || host.includes('pages.dev')) {
+      return 'https://api.reminder.jishu.cc.cd/api';
+    }
+  }
+  return 'http://localhost:8787/api';
+};
+
+const API_BASE_URL = getDefaultApiUrl();
 
 type ApiError = {
   code: string;
